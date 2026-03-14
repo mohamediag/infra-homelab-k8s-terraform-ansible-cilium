@@ -1,0 +1,16 @@
+---
+# ==============================================================================
+# playbooks/03-kubeadm.yml — Install kubeadm, kubelet, kubectl
+# ==============================================================================
+# Installs Kubernetes tooling from the official pkgs.k8s.io repo.
+# Pins packages to k8s_version to prevent accidental upgrades.
+# Runs on ALL Kubernetes VMs.
+# ==============================================================================
+
+- name: Install kubeadm, kubelet, kubectl
+  hosts: k8s_nodes
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - role: kubeadm

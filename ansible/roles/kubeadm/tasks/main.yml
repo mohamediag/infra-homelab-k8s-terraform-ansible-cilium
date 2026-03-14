@@ -1,0 +1,71 @@
+---
+# ==============================================================================
+# roles/kubeadm/tasks/main.yml
+# ==============================================================================
+# Installs kubeadm, kubelet, and kubectl on all Kubernetes nodes.
+# Uses the official Kubernetes APT repository (pkgs.k8s.io).
+# Pins all packages to the specified Kubernetes version to prevent accidental upgrades.
+# ==============================================================================
+
+# ── Add Kubernetes APT repository ────────────────────────────────────────────
+# New repo format: pkgs.k8s.io (replaced the old apt.kubernetes.io)
+# Versioned by minor version (1.31) to make upgrading explicit
+
+- name: Ensure /etc/apt/keyrings directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Download Kubernetes APT signing key
+  ansible.builtin.shell: |
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/Release.key \
+      | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  args:
+    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+- name: Add Kubernetes APT repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/ /"
+    state: present
+    filename: kubernetes
+    update_cache: yes
+
+# ── Install Kubernetes components ─────────────────────────────────────────────
+
+- name: Install kubeadm, kubelet, kubectl
+  ansible.builtin.apt:
+    name:
+      - "kubeadm={{ k8s_apt_package_version }}"
+      - "kubelet={{ k8s_apt_package_version }}"
+      - "kubectl={{ k8s_apt_package_version }}"
+    state: present
+    update_cache: yes
+
+# Prevent automatic upgrades that could break the cluster
+- name: Hold kubeadm, kubelet, kubectl at current version
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubeadm
+    - kubelet
+    - kubectl
+
+# ── Enable kubelet ────────────────────────────────────────────────────────────
+# kubelet will fail to start until kubeadm init/join is run — that's expected.
+
+- name: Enable kubelet service (will start properly after kubeadm init/join)
+  ansible.builtin.systemd:
+    name: kubelet
+    enabled: yes
+    daemon_reload: yes
+
+- name: Verify kubeadm installation
+  ansible.builtin.command: kubeadm version
+  register: kubeadm_version
+  changed_when: false
+
+- name: Show kubeadm version
+  ansible.builtin.debug:
+    msg: "{{ kubeadm_version.stdout }}"

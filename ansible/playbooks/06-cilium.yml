@@ -1,0 +1,15 @@
+---
+# ==============================================================================
+# playbooks/06-cilium.yml — Install Cilium CNI
+# ==============================================================================
+# Installs Cilium with kube-proxy replacement and Hubble observability.
+# Runs on the control plane node (cp-01) using kubectl + Cilium CLI.
+# ==============================================================================
+
+- name: Install Cilium CNI with kube-proxy replacement
+  hosts: control_plane
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - role: cilium

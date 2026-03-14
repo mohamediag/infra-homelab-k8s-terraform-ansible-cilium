@@ -1,0 +1,108 @@
+---
+# ==============================================================================
+# roles/common/tasks/main.yml
+# ==============================================================================
+# Base configuration applied to ALL Kubernetes nodes (control plane + workers).
+# This runs before containerd/kubeadm installation.
+#
+# What it does:
+#   1. Disables swap (required by kubelet)
+#   2. Loads required kernel modules
+#   3. Sets required sysctl parameters
+#   4. Configures /etc/hosts for cluster name resolution
+#   5. Updates packages and installs dependencies
+# ==============================================================================
+
+# ── System updates ────────────────────────────────────────────────────────────
+
+- name: Update apt cache and upgrade packages
+  ansible.builtin.apt:
+    update_cache: yes
+    upgrade: dist
+    cache_valid_time: 3600
+
+- name: Install common dependencies
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - software-properties-common
+      - python3-pip
+    state: present
+
+# ── Disable swap ──────────────────────────────────────────────────────────────
+# kubelet refuses to start if swap is enabled.
+# We disable it immediately AND remove it from /etc/fstab for permanence.
+
+- name: Disable swap immediately
+  ansible.builtin.command: swapoff -a
+  changed_when: false  # Command is safe to run even if swap is already off
+
+- name: Remove swap from /etc/fstab (permanent)
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+    replace: '# \1'
+    backup: yes
+
+- name: Verify swap is disabled
+  ansible.builtin.command: swapon --show
+  register: swap_status
+  changed_when: false
+  failed_when: swap_status.stdout | length > 0
+
+# ── Kernel modules ────────────────────────────────────────────────────────────
+# overlay: required by containerd for overlay filesystem
+# br_netfilter: required for iptables rules on bridge interfaces (k8s networking)
+
+- name: Load kernel modules configuration file
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      # Kubernetes required kernel modules
+      overlay
+      br_netfilter
+    mode: "0644"
+
+- name: Load overlay module
+  community.general.modprobe:
+    name: overlay
+    state: present
+
+- name: Load br_netfilter module
+  community.general.modprobe:
+    name: br_netfilter
+    state: present
+
+# ── sysctl settings ───────────────────────────────────────────────────────────
+# These allow iptables to see bridged traffic — required for Kubernetes networking.
+# ip_forward allows routing between pods and external network.
+
+- name: Configure sysctl for Kubernetes networking
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+    sysctl_file: /etc/sysctl.d/99-kubernetes.conf
+  loop:
+    - { name: "net.bridge.bridge-nf-call-iptables",  value: "1" }
+    - { name: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+    - { name: "net.ipv4.ip_forward",                 value: "1" }
+
+# ── /etc/hosts ────────────────────────────────────────────────────────────────
+# Ensures all nodes can resolve each other by hostname.
+# This is used by kubeadm and kubelet for cluster communication.
+
+- name: Add cluster nodes to /etc/hosts
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    marker: "# {mark} KUBERNETES CLUSTER NODES"
+    block: |
+      {% for host in vm_hosts %}
+      {{ host.ip }} {{ host.name }} {{ host.name }}.k8s.local
+      {% endfor %}
+    create: yes

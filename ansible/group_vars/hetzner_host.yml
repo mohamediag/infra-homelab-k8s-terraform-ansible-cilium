@@ -1,0 +1,27 @@
+# ==============================================================================
+# group_vars/hetzner_host.yml — Variables for the Hetzner bare-metal host
+# ==============================================================================
+# Direct SSH connection as root — no ProxyJump, no bastion.
+# These override ansible.cfg defaults for the hetzner_host group.
+# ==============================================================================
+
+ansible_user: root
+# SSH key comes from the inventory (generated from HETZNER_SSH_KEY env var)
+
+# The Hetzner host runs Ubuntu 22.04 and needs KVM/libvirt installed
+# Packages installed by the host-prepare role:
+host_packages:
+  - qemu-kvm
+  - libvirt-daemon-system
+  - libvirt-clients
+  - bridge-utils
+  - virtinst
+  - cloud-image-utils
+  - cpu-checker
+  - iptables-persistent
+  - ufw
+  - python3-libvirt  # Needed for Ansible libvirt modules
+
+# Ubuntu 22.04 cloud image — downloaded to this path by host-prepare role
+ubuntu_cloud_image_url: "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+ubuntu_cloud_image_path: "/var/lib/libvirt/images/ubuntu-22.04-cloudimg-amd64.img"

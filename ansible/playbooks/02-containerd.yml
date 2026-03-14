@@ -1,0 +1,15 @@
+---
+# ==============================================================================
+# playbooks/02-containerd.yml — Install container runtime (containerd)
+# ==============================================================================
+# Installs containerd.io from Docker's APT repo and configures it for Kubernetes.
+# Runs on ALL Kubernetes VMs.
+# ==============================================================================
+
+- name: Install and configure containerd runtime
+  hosts: k8s_nodes
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - role: containerd

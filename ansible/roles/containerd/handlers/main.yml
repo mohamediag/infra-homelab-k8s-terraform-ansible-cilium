@@ -1,0 +1,10 @@
+---
+# ==============================================================================
+# roles/containerd/handlers/main.yml
+# ==============================================================================
+
+- name: restart containerd
+  ansible.builtin.systemd:
+    name: containerd
+    state: restarted
+    daemon_reload: yes

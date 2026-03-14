@@ -1,0 +1,10 @@
+---
+# ==============================================================================
+# roles/common/handlers/main.yml
+# ==============================================================================
+# Handlers for the common role.
+# Currently no handlers needed — sysctl module applies changes immediately.
+# This file is kept for future use.
+# ==============================================================================
+
+# Placeholder: sysctl changes are applied directly by the ansible.posix.sysctl module

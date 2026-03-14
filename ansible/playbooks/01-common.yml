@@ -1,0 +1,15 @@
+---
+# ==============================================================================
+# playbooks/01-common.yml — Base OS configuration for all K8s nodes
+# ==============================================================================
+# Disables swap, loads kernel modules, sets sysctl, configures /etc/hosts.
+# Runs on ALL Kubernetes VMs (control plane + workers).
+# ==============================================================================
+
+- name: Apply common Kubernetes node configuration
+  hosts: k8s_nodes
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - role: common

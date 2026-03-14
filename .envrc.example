@@ -1,0 +1,8 @@
+# Copy this file to .envrc and fill in your values.
+# If you use direnv: `cp .envrc.example .envrc && direnv allow`
+
+# Public IP of your Hetzner dedicated server
+export HETZNER_HOST_IP="1.2.3.4"
+
+# Path to your local SSH private key that has root access to the Hetzner host
+export HETZNER_SSH_KEY="$HOME/.ssh/id_ed25519"

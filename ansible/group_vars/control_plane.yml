@@ -1,0 +1,17 @@
+# ==============================================================================
+# group_vars/control_plane.yml — Variables for Kubernetes control plane nodes
+# ==============================================================================
+
+# The kubeadm init configuration file path (on the remote VM)
+kubeadm_config_path: /tmp/kubeadm-config.yml
+
+# Kubeconfig paths on the control plane node
+kubeadmin_home: /home/kubeadmin
+kubeadmin_kubeconfig: /home/kubeadmin/.kube/config
+root_kubeconfig: /etc/kubernetes/admin.conf
+
+# Cilium CLI install location
+cilium_cli_path: /usr/local/bin/cilium
+
+# Join command fact name (registered and used by workers role)
+kubeadm_join_fact: kubeadm_join_command

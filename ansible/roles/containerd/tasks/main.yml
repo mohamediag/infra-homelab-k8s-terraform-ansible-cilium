@@ -1,0 +1,86 @@
+---
+# ==============================================================================
+# roles/containerd/tasks/main.yml
+# ==============================================================================
+# Installs and configures containerd as the container runtime for Kubernetes.
+# Uses Docker's official APT repository for containerd.io.
+#
+# Key configuration:
+#   - SystemdCgroup = true (required for Kubernetes with systemd)
+#   - Correct pause/sandbox image version for K8s 1.31
+# ==============================================================================
+
+# ── Add Docker APT repository ─────────────────────────────────────────────────
+# Docker maintains containerd.io which is more up-to-date than Ubuntu's containerd
+
+- name: Add Docker GPG key
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker APT repository
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+    filename: docker
+    update_cache: yes
+
+# ── Install containerd ────────────────────────────────────────────────────────
+
+- name: Install containerd.io
+  ansible.builtin.apt:
+    name: containerd.io
+    state: present
+    update_cache: yes
+  notify: restart containerd
+
+# ── Configure containerd ──────────────────────────────────────────────────────
+# Generate default config, then modify it for Kubernetes compatibility.
+
+- name: Ensure /etc/containerd directory exists
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    mode: "0755"
+
+- name: Generate default containerd configuration
+  ansible.builtin.shell: containerd config default > /etc/containerd/config.toml
+  args:
+    creates: /etc/containerd/config.toml
+  notify: restart containerd
+
+# CRITICAL: SystemdCgroup = true
+# Without this, containerd and kubelet use different cgroup drivers,
+# causing kubelet to crash. This is the most common containerd misconfiguration.
+- name: Set SystemdCgroup = true in containerd config
+  ansible.builtin.replace:
+    path: /etc/containerd/config.toml
+    regexp: 'SystemdCgroup = false'
+    replace: 'SystemdCgroup = true'
+  notify: restart containerd
+
+# Update the sandbox (pause container) image to match Kubernetes 1.31
+- name: Set correct sandbox image version
+  ansible.builtin.replace:
+    path: /etc/containerd/config.toml
+    regexp: 'sandbox_image = ".*"'
+    replace: 'sandbox_image = "{{ containerd_sandbox_image }}"'
+  notify: restart containerd
+
+# ── Enable and start containerd ───────────────────────────────────────────────
+
+- name: Enable and start containerd service
+  ansible.builtin.systemd:
+    name: containerd
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Verify containerd is running
+  ansible.builtin.command: containerd --version
+  register: containerd_version
+  changed_when: false
+
+- name: Show containerd version
+  ansible.builtin.debug:
+    msg: "containerd version: {{ containerd_version.stdout }}"

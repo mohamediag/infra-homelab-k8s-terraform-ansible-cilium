@@ -1,0 +1,91 @@
+---
+# ==============================================================================
+# roles/control-plane/tasks/main.yml
+# ==============================================================================
+# Bootstraps the Kubernetes control plane on cp-01.
+#
+# Key decisions:
+#   - skipPhases: [addon/kube-proxy] — Cilium will replace kube-proxy (eBPF mode)
+#   - kubeadm init uses a config file for reproducibility
+#   - join command is stored as an Ansible fact for workers to use
+# ==============================================================================
+
+# ── Check if cluster is already initialized ───────────────────────────────────
+
+- name: Check if kubeadm has already initialized the cluster
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubeadm_initialized
+
+# ── Template kubeadm configuration ───────────────────────────────────────────
+
+- name: Template kubeadm init configuration
+  ansible.builtin.template:
+    src: kubeadm-config.yml.j2
+    dest: "{{ kubeadm_config_path }}"
+    mode: "0644"
+  when: not kubeadm_initialized.stat.exists
+
+# ── Initialize the control plane ──────────────────────────────────────────────
+
+- name: Run kubeadm init (initializes control plane)
+  ansible.builtin.command: kubeadm init --config {{ kubeadm_config_path }}
+  register: kubeadm_init_result
+  when: not kubeadm_initialized.stat.exists
+  changed_when: true
+
+- name: Show kubeadm init output
+  ansible.builtin.debug:
+    msg: "{{ kubeadm_init_result.stdout_lines }}"
+  when: kubeadm_init_result.changed
+
+# ── Setup kubeconfig ──────────────────────────────────────────────────────────
+# The kubeadmin user needs a kubeconfig to use kubectl
+
+- name: Create .kube directory for kubeadmin
+  ansible.builtin.file:
+    path: "{{ kubeadmin_home }}/.kube"
+    state: directory
+    owner: kubeadmin
+    group: kubeadmin
+    mode: "0755"
+
+- name: Copy admin kubeconfig to kubeadmin user
+  ansible.builtin.copy:
+    src: "{{ root_kubeconfig }}"
+    dest: "{{ kubeadmin_kubeconfig }}"
+    remote_src: yes
+    owner: kubeadmin
+    group: kubeadmin
+    mode: "0600"
+
+# Also setup for root user (used by Ansible tasks that run as root)
+- name: Create .kube directory for root
+  ansible.builtin.file:
+    path: /root/.kube
+    state: directory
+    mode: "0755"
+
+- name: Copy admin kubeconfig to root user
+  ansible.builtin.copy:
+    src: "{{ root_kubeconfig }}"
+    dest: /root/.kube/config
+    remote_src: yes
+    mode: "0600"
+
+# ── Generate kubeadm join command ─────────────────────────────────────────────
+# This token + hash is used by workers to join the cluster.
+# Stored as an Ansible fact so the workers role can retrieve it.
+
+- name: Generate kubeadm join command
+  ansible.builtin.command: kubeadm token create --print-join-command
+  register: join_command_raw
+  changed_when: false
+
+- name: Set join command as fact (accessible via hostvars)
+  ansible.builtin.set_fact:
+    "{{ kubeadm_join_fact }}": "{{ join_command_raw.stdout }}"
+
+- name: Show join command (for debugging)
+  ansible.builtin.debug:
+    msg: "Join command generated: {{ join_command_raw.stdout[:50] }}..."

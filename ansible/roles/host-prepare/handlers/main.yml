@@ -1,0 +1,13 @@
+---
+# ==============================================================================
+# roles/host-prepare/handlers/main.yml
+# ==============================================================================
+
+- name: restart libvirtd
+  ansible.builtin.systemd:
+    name: libvirtd
+    state: restarted
+
+- name: reload ufw
+  community.general.ufw:
+    state: reloaded

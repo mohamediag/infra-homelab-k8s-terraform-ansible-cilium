@@ -1,0 +1,31 @@
+---
+# ==============================================================================
+# playbooks/site.yml — Master playbook: runs all K8s bootstrap playbooks
+# ==============================================================================
+# Run all cluster bootstrap playbooks in order.
+# NOTE: Does NOT include 00-host-prepare (runs on Hetzner host, separate step).
+#
+# Usage: ansible-playbook playbooks/site.yml
+# Or via Makefile: make cluster
+# ==============================================================================
+
+- name: "01 — Common configuration (all nodes)"
+  import_playbook: 01-common.yml
+
+- name: "02 — Install containerd (all nodes)"
+  import_playbook: 02-containerd.yml
+
+- name: "03 — Install kubeadm/kubelet/kubectl (all nodes)"
+  import_playbook: 03-kubeadm.yml
+
+- name: "04 — Bootstrap control plane (cp-01)"
+  import_playbook: 04-control-plane.yml
+
+- name: "05 — Join worker nodes"
+  import_playbook: 05-workers.yml
+
+- name: "06 — Install Cilium CNI (cp-01)"
+  import_playbook: 06-cilium.yml
+
+- name: "07 — Install cluster essentials (cp-01)"
+  import_playbook: 07-essentials.yml

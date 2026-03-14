@@ -1,0 +1,15 @@
+---
+# ==============================================================================
+# playbooks/04-control-plane.yml — Initialize Kubernetes control plane
+# ==============================================================================
+# Runs kubeadm init on cp-01, sets up kubeconfig, and generates join command.
+# The join command is stored as a fact and used by 05-workers.yml.
+# ==============================================================================
+
+- name: Initialize Kubernetes control plane
+  hosts: control_plane
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - role: control-plane

@@ -1,0 +1,48 @@
+# ==============================================================================
+# terraform.tfvars.example — Example variable values
+# ==============================================================================
+# Copy this file to terraform.tfvars and fill in your values.
+# terraform.tfvars is gitignored — never commit it.
+#
+# Usage:
+#   cp terraform.tfvars.example terraform.tfvars
+#   # Edit terraform.tfvars with your actual values
+# ==============================================================================
+
+# Public IP of your Hetzner dedicated server
+hetzner_host_ip = "1.2.3.4"
+
+# Path to your local SSH private key that has root access to the Hetzner host
+# This is used by the libvirt Terraform provider to connect over SSH
+ssh_key_path = "~/.ssh/id_ed25519"
+
+# Ubuntu 22.04 cloud image — these are the defaults, override if needed
+# ubuntu_image_url  = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+# ubuntu_image_path = "/var/lib/libvirt/images/ubuntu-22.04-cloudimg-amd64.img"
+
+# VM definitions — defaults match the architecture spec (cp-01, worker-01, worker-02)
+# Override here if you want different sizing.
+#
+# vm_definitions = {
+#   "cp-01" = {
+#     vcpus  = 4
+#     memory = 8192          # 8 GB
+#     disk   = 85899345920   # 80 GB in bytes
+#     ip     = "10.0.0.10"
+#     role   = "control_plane"
+#   }
+#   "worker-01" = {
+#     vcpus  = 6
+#     memory = 20480         # 20 GB
+#     disk   = 128849018880  # 120 GB in bytes
+#     ip     = "10.0.0.11"
+#     role   = "worker"
+#   }
+#   "worker-02" = {
+#     vcpus  = 6
+#     memory = 20480
+#     disk   = 128849018880
+#     ip     = "10.0.0.12"
+#     role   = "worker"
+#   }
+# }

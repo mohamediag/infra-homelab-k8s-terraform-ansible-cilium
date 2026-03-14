@@ -1,0 +1,18 @@
+---
+# ==============================================================================
+# playbooks/00-host-prepare.yml — Prepare Hetzner host for KVM virtualization
+# ==============================================================================
+# MUST run BEFORE terraform apply.
+# Installs KVM/libvirt, configures networking, and downloads the Ubuntu image.
+#
+# Usage: ansible-playbook playbooks/00-host-prepare.yml
+# Or via Makefile: make host-prepare
+# ==============================================================================
+
+- name: Prepare Hetzner host for KVM virtual machines
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - role: host-prepare

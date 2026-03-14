@@ -1,0 +1,37 @@
+# ==============================================================================
+# group_vars/all.yml — Variables for ALL hosts
+# ==============================================================================
+
+# ── Kubernetes version ────────────────────────────────────────────────────────
+# Pinned to 1.31.x — change the minor version to upgrade
+k8s_version: "1.31"
+k8s_apt_package_version: "1.31.*"  # e.g. kubeadm=1.31.*
+
+# ── Kubernetes networking ─────────────────────────────────────────────────────
+# These CIDRs must not overlap with each other or the VM network (10.0.0.0/24)
+pod_cidr: "10.244.0.0/16"      # Pod network (Cilium manages this)
+service_cidr: "10.96.0.0/12"   # Service network (kubeadm default)
+
+# ── VM bridge network ─────────────────────────────────────────────────────────
+bridge_subnet: "10.0.0.0/24"
+bridge_gateway: "10.0.0.1"
+
+# ── VM IP addresses ───────────────────────────────────────────────────────────
+# Used for /etc/hosts configuration on all nodes
+vm_hosts:
+  - name: cp-01
+    ip: "10.0.0.10"
+  - name: worker-01
+    ip: "10.0.0.11"
+  - name: worker-02
+    ip: "10.0.0.12"
+
+# ── Containerd ────────────────────────────────────────────────────────────────
+# sandbox_image must match the pause container version for Kubernetes 1.31
+containerd_sandbox_image: "registry.k8s.io/pause:3.10"
+
+# ── MetalLB ───────────────────────────────────────────────────────────────────
+metallb_ip_range: "10.0.0.200-10.0.0.250"
+
+# ── Timezone ──────────────────────────────────────────────────────────────────
+cluster_timezone: "UTC"

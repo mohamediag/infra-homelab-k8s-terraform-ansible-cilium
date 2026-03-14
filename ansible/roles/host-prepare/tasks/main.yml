@@ -1,0 +1,170 @@
+---
+# ==============================================================================
+# roles/host-prepare/tasks/main.yml
+# ==============================================================================
+# Prepares the Hetzner bare-metal host to run KVM virtual machines.
+# This role MUST run before `terraform apply`.
+#
+# What it does:
+#   1. Installs KVM/libvirt packages
+#   2. Verifies hardware virtualization support
+#   3. Enables and starts libvirtd
+#   4. Configures iptables NAT masquerading for VM network
+#   5. Configures UFW firewall rules
+#   6. Downloads the Ubuntu 22.04 cloud image
+# ==============================================================================
+
+# ── Package installation ──────────────────────────────────────────────────────
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install KVM/libvirt packages
+  ansible.builtin.apt:
+    name:
+      - qemu-kvm
+      - libvirt-daemon-system
+      - libvirt-clients
+      - bridge-utils
+      - virtinst
+      - cloud-image-utils
+      - cpu-checker
+      - iptables-persistent
+      - ufw
+      - python3-libvirt
+    state: present
+  notify: restart libvirtd
+
+# ── Verify KVM support ────────────────────────────────────────────────────────
+
+- name: Verify hardware virtualization is supported (kvm-ok)
+  ansible.builtin.command: kvm-ok
+  register: kvm_check
+  changed_when: false
+  failed_when: "'KVM acceleration can be used' not in kvm_check.stdout"
+
+- name: Show KVM check result
+  ansible.builtin.debug:
+    msg: "{{ kvm_check.stdout }}"
+
+# ── libvirtd service ─────────────────────────────────────────────────────────
+
+- name: Enable and start libvirtd
+  ansible.builtin.systemd:
+    name: libvirtd
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+# ── Add root to libvirt group (for virsh without sudo) ────────────────────────
+
+- name: Add root to libvirt and kvm groups
+  ansible.builtin.user:
+    name: root
+    groups:
+      - libvirt
+      - kvm
+    append: yes
+
+# ── iptables NAT masquerading ─────────────────────────────────────────────────
+# Allows VMs (10.0.0.0/24) to access the internet through the host's public IP.
+# This is what gives VMs outbound connectivity to download packages.
+
+- name: Enable IP forwarding
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    state: present
+    reload: yes
+    sysctl_file: /etc/sysctl.d/99-ip-forward.conf
+
+- name: Add iptables MASQUERADE rule for VM subnet
+  ansible.builtin.iptables:
+    table: nat
+    chain: POSTROUTING
+    source: "{{ bridge_subnet | default('10.0.0.0/24') }}"
+    jump: MASQUERADE
+    comment: "NAT for KVM VMs (k8s-net)"
+
+- name: Allow forwarding from VM subnet
+  ansible.builtin.iptables:
+    chain: FORWARD
+    source: "{{ bridge_subnet | default('10.0.0.0/24') }}"
+    jump: ACCEPT
+    comment: "Forward from KVM VM subnet"
+
+- name: Allow forwarding to VM subnet (established/related)
+  ansible.builtin.iptables:
+    chain: FORWARD
+    destination: "{{ bridge_subnet | default('10.0.0.0/24') }}"
+    ctstate: ESTABLISHED,RELATED
+    jump: ACCEPT
+    comment: "Forward established to KVM VM subnet"
+
+- name: Save iptables rules (persist across reboots)
+  ansible.builtin.command: netfilter-persistent save
+  changed_when: true
+
+# ── UFW firewall ──────────────────────────────────────────────────────────────
+
+- name: Allow SSH (port 22)
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+
+- name: Allow Kubernetes API server (port 6443)
+  community.general.ufw:
+    rule: allow
+    port: "6443"
+    proto: tcp
+
+- name: Allow HTTP (port 80)
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+
+- name: Allow HTTPS (port 443)
+  community.general.ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+
+- name: Set UFW default forward policy to ACCEPT
+  ansible.builtin.lineinfile:
+    path: /etc/default/ufw
+    regexp: '^DEFAULT_FORWARD_POLICY='
+    line: 'DEFAULT_FORWARD_POLICY="ACCEPT"'
+  notify: reload ufw
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+    policy: allow
+  notify: reload ufw
+
+# ── Download Ubuntu cloud image ───────────────────────────────────────────────
+# Downloads once; idempotent — skips if file already exists with correct size.
+
+- name: Ensure libvirt images directory exists
+  ansible.builtin.file:
+    path: /var/lib/libvirt/images
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Download Ubuntu 22.04 cloud image (may take a few minutes)
+  ansible.builtin.get_url:
+    url: "{{ ubuntu_cloud_image_url | default('https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img') }}"
+    dest: "{{ ubuntu_cloud_image_path | default('/var/lib/libvirt/images/ubuntu-22.04-cloudimg-amd64.img') }}"
+    mode: "0644"
+    timeout: 300
+  register: image_download
+
+- name: Show image download result
+  ansible.builtin.debug:
+    msg: "Ubuntu cloud image: {{ 'downloaded' if image_download.changed else 'already present' }}"

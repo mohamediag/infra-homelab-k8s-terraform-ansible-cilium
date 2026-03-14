@@ -1,0 +1,3 @@
+# This directory is populated by Terraform (ansible-inventory.tf).
+# ansible/inventory/hosts.yml is gitignored.
+# Run 'make infra' to generate it.
