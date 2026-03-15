@@ -9,6 +9,14 @@
 # The VM gets a static IP, kubeadmin user, and SSH key via cloud-init.
 # ==============================================================================
 
+terraform {
+  required_providers {
+    libvirt = {
+      source = "dmacvicar/libvirt"
+    }
+  }
+}
+
 # ── Disk volume ───────────────────────────────────────────────────────────────
 
 # Each VM gets its own qcow2 volume, backed by the Ubuntu base image.
