@@ -6,3 +6,6 @@ export HETZNER_HOST_IP="1.2.3.4"
 
 # Path to your local SSH private key that has root access to the Hetzner host
 export HETZNER_SSH_KEY="$HOME/.ssh/id_ed25519"
+
+# Your public IP — UFW will restrict SSH access to this IP only
+export MY_PUBLIC_IP=""

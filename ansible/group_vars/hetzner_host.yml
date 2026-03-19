@@ -8,6 +8,9 @@
 ansible_user: root
 # SSH key comes from the inventory (generated from HETZNER_SSH_KEY env var)
 
+# Your public IP — UFW restricts SSH to this address only
+my_public_ip: "{{ lookup('env', 'MY_PUBLIC_IP') }}"
+
 # The Hetzner host runs Ubuntu 22.04 and needs KVM/libvirt installed
 # Packages installed by the host-prepare role:
 host_packages:

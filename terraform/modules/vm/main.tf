@@ -1,5 +1,5 @@
 # ==============================================================================
-# modules/vm/main.tf — KVM VM module
+# modules/vm/main.tf — KVM VM module (libvirt provider v0.8.x)
 # ==============================================================================
 # Creates a single KVM virtual machine with:
 #   1. A qcow2 disk volume (copy-on-write clone of the Ubuntu base image)
@@ -20,20 +20,19 @@ terraform {
 # ── Disk volume ───────────────────────────────────────────────────────────────
 
 # Each VM gets its own qcow2 volume, backed by the Ubuntu base image.
-# copy-on-write means the base image is shared; only changes are stored per-VM.
+# Copy-on-write means the base image is shared; only changes are stored per-VM.
 resource "libvirt_volume" "vm_disk" {
   name           = "${var.name}.qcow2"
   pool           = var.storage_pool
-  base_volume_id = var.base_volume
+  base_volume_id = var.base_volume_id
   format         = "qcow2"
-  size           = var.disk_size # Resize to desired disk size
+  size           = var.disk_size
 }
 
 # ── Cloud-init configuration ──────────────────────────────────────────────────
 
-# Create the cloud-init disk (a small ISO attached to the VM)
-# cloud-init reads this on first boot to configure the VM.
-# We use the built-in templatefile() function (no external provider needed).
+# Cloud-init disk — a small ISO stored in the remote libvirt pool.
+# cloud-init reads this on first boot to configure hostname, users, SSH keys.
 resource "libvirt_cloudinit_disk" "cloudinit" {
   name = "${var.name}-cloudinit.iso"
   pool = var.storage_pool
@@ -57,8 +56,8 @@ resource "libvirt_domain" "vm" {
   vcpu   = var.vcpus
   memory = var.memory # In MB
 
-  # CPU settings — host-passthrough exposes all host CPU features to the VM.
-  # This is required for Cilium's eBPF operations which need certain CPU instructions.
+  # CPU host-passthrough exposes all host CPU features to the VM.
+  # Required for Cilium's eBPF operations.
   cpu {
     mode = "host-passthrough"
   }
@@ -77,14 +76,13 @@ resource "libvirt_domain" "vm" {
     wait_for_lease = false # Static IPs via cloud-init; don't wait for DHCP
   }
 
-  # Serial console — accessible via `virsh console <name>` on the Hetzner host.
-  # Useful for debugging cloud-init issues when SSH isn't up yet.
+  # Serial console — accessible via `virsh console <name>` on the Hetzner host
   console {
     type        = "pty"
     target_type = "serial"
     target_port = "0"
   }
 
-  # Ensure VM starts automatically when libvirtd restarts (e.g. after host reboot)
+  # Ensure VM starts automatically when libvirtd restarts
   autostart = true
 }

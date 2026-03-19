@@ -22,7 +22,7 @@ variable "disk_size" {
   type        = number
 }
 
-variable "base_volume" {
+variable "base_volume_id" {
   description = "ID of the libvirt base volume (Ubuntu cloud image) to clone from"
   type        = string
 }

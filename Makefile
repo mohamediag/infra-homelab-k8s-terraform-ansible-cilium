@@ -10,6 +10,7 @@
 
 HETZNER_IP  ?= $(shell echo $$HETZNER_HOST_IP)
 SSH_KEY     ?= $(shell echo $$HETZNER_SSH_KEY)
+PUBLIC_IP   ?= $(shell echo $$MY_PUBLIC_IP)
 ANSIBLE_DIR  = ansible
 TERRAFORM_DIR = terraform
 
@@ -28,7 +29,7 @@ check-local: ## Verify local prerequisites (tools, env vars, SSH connectivity)
 host-prepare: ## Prepare Hetzner host: install KVM/libvirt, configure networking
 	cd $(ANSIBLE_DIR) && ansible-playbook playbooks/00-host-prepare.yml \
 		-i "$(HETZNER_IP)," \
-		-e "ansible_user=root ansible_ssh_private_key_file=$(SSH_KEY) ansible_ssh_common_args='-o StrictHostKeyChecking=no'"
+		-e "ansible_user=root ansible_ssh_private_key_file=$(SSH_KEY) ansible_ssh_common_args='-o StrictHostKeyChecking=no' my_public_ip=$(PUBLIC_IP)"
 
 # ── Terraform (VM provisioning) ───────────────────────────────────────────────
 

@@ -10,8 +10,8 @@
 # - Sets timezone to UTC
 #
 # Template variables (injected by Terraform):
-#   ${hostname}        — VM name (e.g. cp-01)
-#   ${ssh_public_key}  — ED25519 public key for kubeadmin access
+#   hostname        — VM name (e.g. cp-01)
+#   ssh_public_key  — ED25519 public key for kubeadmin access
 # ==============================================================================
 
 hostname: ${hostname}

@@ -14,7 +14,7 @@ terraform {
     # Manages KVM/QEMU VMs on the remote Hetzner host via SSH
     libvirt = {
       source  = "dmacvicar/libvirt"
-      version = "~> 0.8"
+      version = "~> 0.8.0"
     }
 
     # Generates ED25519 SSH key pair for VM access

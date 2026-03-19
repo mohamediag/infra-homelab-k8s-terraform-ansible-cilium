@@ -98,11 +98,9 @@
 # This is used by kubeadm and kubelet for cluster communication.
 
 - name: Add cluster nodes to /etc/hosts
-  ansible.builtin.blockinfile:
+  ansible.builtin.lineinfile:
     path: /etc/hosts
-    marker: "# {mark} KUBERNETES CLUSTER NODES"
-    block: |
-      {% for host in vm_hosts %}
-      {{ host.ip }} {{ host.name }} {{ host.name }}.k8s.local
-      {% endfor %}
-    create: yes
+    line: "{{ item.ip }} {{ item.name }} {{ item.name }}.k8s.local"
+    regexp: ".*{{ item.name }}.*"
+    state: present
+  loop: "{{ vm_hosts }}"

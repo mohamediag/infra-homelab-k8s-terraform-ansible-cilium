@@ -9,19 +9,12 @@
 
 resource "libvirt_network" "k8s_net" {
   name      = "k8s-net"
-  mode      = "nat"       # NAT mode: VMs can reach internet via host
+  mode      = "nat"
   domain    = "k8s.local"
   addresses = [var.bridge_subnet]
   autostart = true
 
-  # Disable DHCP — all IPs are statically assigned via cloud-init
   dhcp {
     enabled = false
-  }
-
-  # DNS is handled by host resolution; VMs use external DNS (8.8.8.8)
-  dns {
-    enabled    = true
-    local_only = false
   }
 }

@@ -6,14 +6,13 @@
 # ==============================================================================
 
 variable "hetzner_host_ip" {
-  description = "Public IP address of the Hetzner dedicated server"
+  description = "Public IP address of the Hetzner dedicated server (set via TF_VAR_hetzner_host_ip env var)"
   type        = string
 }
 
 variable "ssh_key_path" {
-  description = "Path to the local SSH private key used to connect to the Hetzner host (for libvirt over SSH)"
+  description = "Path to the local SSH private key for the Hetzner host (set via TF_VAR_ssh_key_path env var)"
   type        = string
-  default     = "~/.ssh/id_ed25519"
 }
 
 # Map of VM definitions. Each entry becomes a KVM VM.

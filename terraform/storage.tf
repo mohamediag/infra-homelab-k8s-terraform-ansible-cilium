@@ -10,7 +10,6 @@
 # handles this download.
 # ==============================================================================
 
-# Storage pool — the directory where all VM disk images live on the host
 resource "libvirt_pool" "images" {
   name = "k8s-images"
   type = "dir"
@@ -26,6 +25,6 @@ resource "libvirt_pool" "images" {
 resource "libvirt_volume" "ubuntu_base" {
   name   = "ubuntu-22.04-base.qcow2"
   pool   = libvirt_pool.images.name
-  source = var.ubuntu_image_path
+  source = var.ubuntu_image_url
   format = "qcow2"
 }

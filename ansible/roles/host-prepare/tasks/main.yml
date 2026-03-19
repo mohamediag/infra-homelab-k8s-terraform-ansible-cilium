@@ -108,30 +108,22 @@
   changed_when: true
 
 # ── UFW firewall ──────────────────────────────────────────────────────────────
+# Only SSH is exposed, and only from your public IP (MY_PUBLIC_IP env var).
+# K8s API (6443) is accessed via SSH tunnel — no need to expose it.
+# Ports 80/443 can be added later when ingress port-forwarding is set up.
 
-- name: Allow SSH (port 22)
+- name: Validate MY_PUBLIC_IP is set
+  ansible.builtin.assert:
+    that:
+      - my_public_ip | length > 0
+    fail_msg: "MY_PUBLIC_IP env var is not set. Export it before running this playbook."
+
+- name: Allow SSH (port 22) from my IP only
   community.general.ufw:
     rule: allow
     port: "22"
     proto: tcp
-
-- name: Allow Kubernetes API server (port 6443)
-  community.general.ufw:
-    rule: allow
-    port: "6443"
-    proto: tcp
-
-- name: Allow HTTP (port 80)
-  community.general.ufw:
-    rule: allow
-    port: "80"
-    proto: tcp
-
-- name: Allow HTTPS (port 443)
-  community.general.ufw:
-    rule: allow
-    port: "443"
-    proto: tcp
+    from_ip: "{{ my_public_ip }}"
 
 - name: Set UFW default forward policy to ACCEPT
   ansible.builtin.lineinfile:
@@ -140,10 +132,10 @@
     line: 'DEFAULT_FORWARD_POLICY="ACCEPT"'
   notify: reload ufw
 
-- name: Enable UFW
+- name: Enable UFW with default deny
   community.general.ufw:
     state: enabled
-    policy: allow
+    policy: deny
   notify: reload ufw
 
 # ── Download Ubuntu cloud image ───────────────────────────────────────────────
