@@ -31,6 +31,7 @@
       - lsb-release
       - software-properties-common
       - python3-pip
+      - conntrack           # Required by kube-proxy for connection tracking
     state: present
 
 # ── Disable swap ──────────────────────────────────────────────────────────────

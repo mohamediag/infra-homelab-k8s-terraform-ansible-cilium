@@ -49,6 +49,16 @@
     creates: /etc/containerd/config.toml
   notify: restart containerd
 
+# CRITICAL: Enable CRI plugin
+# containerd v2.x disables CRI by default (disabled_plugins = ["cri"]).
+# Kubernetes requires CRI to communicate with the container runtime.
+- name: Enable CRI plugin (remove from disabled_plugins)
+  ansible.builtin.replace:
+    path: /etc/containerd/config.toml
+    regexp: 'disabled_plugins = \["cri"\]'
+    replace: 'disabled_plugins = []'
+  notify: restart containerd
+
 # CRITICAL: SystemdCgroup = true
 # Without this, containerd and kubelet use different cgroup drivers,
 # causing kubelet to crash. This is the most common containerd misconfiguration.

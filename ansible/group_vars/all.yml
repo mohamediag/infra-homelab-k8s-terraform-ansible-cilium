@@ -26,6 +26,11 @@ vm_hosts:
   - name: worker-02
     ip: "10.0.0.12"
 
+# ── Cluster join ──────────────────────────────────────────────────────────────
+# Fact name used to pass the kubeadm join command from control plane to workers
+kubeadm_join_fact: kubeadm_join_command
+control_plane_host: "cp-01"
+
 # ── Containerd ────────────────────────────────────────────────────────────────
 # sandbox_image must match the pause container version for Kubernetes 1.31
 containerd_sandbox_image: "registry.k8s.io/pause:3.10"

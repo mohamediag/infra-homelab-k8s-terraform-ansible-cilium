@@ -13,5 +13,4 @@ root_kubeconfig: /etc/kubernetes/admin.conf
 # Cilium CLI install location
 cilium_cli_path: /usr/local/bin/cilium
 
-# Join command fact name (registered and used by workers role)
-kubeadm_join_fact: kubeadm_join_command
+# Join command fact name — defined in group_vars/all.yml (shared with workers)
