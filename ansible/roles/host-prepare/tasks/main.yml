@@ -103,14 +103,46 @@
     jump: ACCEPT
     comment: "Forward established to KVM VM subnet"
 
+# ── iptables DNAT for ingress traffic ─────────────────────────────────────────
+# Forward ports 80/443 from the Hetzner host's public IP to the Cilium LB IP
+# inside the VM network. This is how external HTTP/HTTPS traffic reaches the
+# Gateway (Envoy proxy) running in the cluster.
+#
+# CRITICAL: in_interface MUST be set to the public interface (enp5s0).
+# Without it, DNAT also catches VM outbound traffic on ports 80/443 and
+# redirects it to the LB IP instead of the internet — breaking apt etc.
+
+- name: DNAT port 80 to ingress LB IP
+  ansible.builtin.iptables:
+    table: nat
+    chain: PREROUTING
+    protocol: tcp
+    in_interface: "{{ host_public_interface | default('enp5s0') }}"
+    destination_port: "80"
+    jump: DNAT
+    to_destination: "{{ ingress_lb_ip }}:80"
+    comment: "DNAT HTTP to Cilium Gateway LB"
+
+- name: DNAT port 443 to ingress LB IP
+  ansible.builtin.iptables:
+    table: nat
+    chain: PREROUTING
+    protocol: tcp
+    in_interface: "{{ host_public_interface | default('enp5s0') }}"
+    destination_port: "443"
+    jump: DNAT
+    to_destination: "{{ ingress_lb_ip }}:443"
+    comment: "DNAT HTTPS to Cilium Gateway LB"
+
 - name: Save iptables rules (persist across reboots)
   ansible.builtin.command: netfilter-persistent save
   changed_when: true
 
 # ── UFW firewall ──────────────────────────────────────────────────────────────
-# Only SSH is exposed, and only from your public IP (MY_PUBLIC_IP env var).
-# K8s API (6443) is accessed via SSH tunnel — no need to expose it.
-# Ports 80/443 can be added later when ingress port-forwarding is set up.
+# All ports restricted to MY_PUBLIC_IP by default.
+# K8s API (6443): accessed via SSH tunnel — not exposed.
+# HTTP/HTTPS (80/443): DNAT'd to Cilium Gateway LB.
+# To open 80/443 to the internet, change from_ip to "any" explicitly.
 
 - name: Validate MY_PUBLIC_IP is set
   ansible.builtin.assert:
@@ -122,6 +154,20 @@
   community.general.ufw:
     rule: allow
     port: "22"
+    proto: tcp
+    from_ip: "{{ my_public_ip }}"
+
+- name: Allow HTTP (port 80) from my IP only
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+    from_ip: "{{ my_public_ip }}"
+
+- name: Allow HTTPS (port 443) from my IP only
+  community.general.ufw:
+    rule: allow
+    port: "443"
     proto: tcp
     from_ip: "{{ my_public_ip }}"
 

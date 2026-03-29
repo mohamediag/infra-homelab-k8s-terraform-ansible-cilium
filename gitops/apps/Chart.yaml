@@ -1,0 +1,12 @@
+# ==============================================================================
+# gitops/apps/Chart.yaml — Root "App of Apps" Helm chart
+# ==============================================================================
+# This is the top-level ArgoCD Application that deploys all child Applications.
+# ArgoCD watches this chart and syncs any new Applications added here.
+# ==============================================================================
+
+apiVersion: v2
+name: apps
+description: Root App of Apps — deploys all cluster add-ons as ArgoCD Applications
+version: 1.0.0
+type: application

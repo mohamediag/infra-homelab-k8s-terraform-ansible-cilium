@@ -1,0 +1,128 @@
+---
+# ==============================================================================
+# roles/argocd/tasks/main.yml
+# ==============================================================================
+# Bootstraps ArgoCD on the cluster using Helm, then creates the root
+# "App of Apps" Application that points at gitops/apps/ in this repo.
+#
+# After this runs, ArgoCD manages itself and all cluster add-ons via GitOps.
+# ==============================================================================
+
+# ── Install ArgoCD via Helm ───────────────────────────────────────────────────
+
+- name: Add ArgoCD Helm repository
+  ansible.builtin.command: helm repo add argo https://argoproj.github.io/argo-helm
+  environment:
+    KUBECONFIG: /root/.kube/config
+  register: helm_repo_add
+  changed_when: "'has been added' in helm_repo_add.stdout"
+  failed_when: false
+
+- name: Update Helm repositories
+  ansible.builtin.command: helm repo update
+  environment:
+    KUBECONFIG: /root/.kube/config
+  changed_when: false
+
+- name: Create argocd namespace
+  ansible.builtin.command: kubectl create namespace argocd
+  environment:
+    KUBECONFIG: /root/.kube/config
+  register: ns_create
+  changed_when: "'created' in ns_create.stdout"
+  failed_when: false
+
+- name: Check if ArgoCD is already installed
+  ansible.builtin.command: helm list -n argocd -q
+  environment:
+    KUBECONFIG: /root/.kube/config
+  register: helm_list
+  changed_when: false
+
+- name: Install ArgoCD via Helm
+  ansible.builtin.command: >
+    helm install argocd argo/argo-cd
+    --namespace argocd
+    --version 7.8.14
+    --set server.extraArgs[0]=--insecure
+    --set dex.enabled=false
+    --set notifications.enabled=false
+    --set configs.params.server\.insecure=true
+    --set configs.cm.timeout\.reconciliation=180s
+    --wait
+    --timeout 5m
+  environment:
+    KUBECONFIG: /root/.kube/config
+  when: "'argocd' not in helm_list.stdout"
+  register: argocd_install
+  changed_when: true
+
+- name: Show ArgoCD install output
+  ansible.builtin.debug:
+    msg: "{{ argocd_install.stdout_lines | default(['ArgoCD already installed']) }}"
+
+# ── Wait for ArgoCD to be ready ───────────────────────────────────────────────
+
+- name: Wait for ArgoCD server to be ready
+  ansible.builtin.command: >
+    kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
+  environment:
+    KUBECONFIG: /root/.kube/config
+  changed_when: false
+
+# ── Get initial admin password ────────────────────────────────────────────────
+
+- name: Get ArgoCD initial admin password
+  ansible.builtin.command: >
+    kubectl get secret argocd-initial-admin-secret -n argocd
+    -o jsonpath='{.data.password}'
+  environment:
+    KUBECONFIG: /root/.kube/config
+  register: argocd_password_b64
+  changed_when: false
+  failed_when: false
+
+- name: Decode ArgoCD admin password
+  ansible.builtin.set_fact:
+    argocd_admin_password: "{{ argocd_password_b64.stdout | b64decode }}"
+  when: argocd_password_b64.rc == 0
+
+- name: Display ArgoCD access info
+  ansible.builtin.debug:
+    msg:
+      - "ArgoCD is running in namespace: argocd"
+      - "Initial admin password: {{ argocd_admin_password | default('not available') }}"
+      - "Access UI: kubectl port-forward svc/argocd-server -n argocd 8080:80"
+      - "            Then open http://localhost:8080 (user: admin)"
+
+# ── Create root App of Apps ───────────────────────────────────────────────────
+
+- name: Copy root Application manifest
+  ansible.builtin.template:
+    src: root-application.yaml.j2
+    dest: /tmp/argocd-root-application.yaml
+    mode: "0644"
+
+- name: Apply root App of Apps Application
+  ansible.builtin.command: kubectl apply -f /tmp/argocd-root-application.yaml
+  environment:
+    KUBECONFIG: /root/.kube/config
+  register: root_app_apply
+  changed_when: "'created' in root_app_apply.stdout or 'configured' in root_app_apply.stdout"
+
+- name: Show root Application status
+  ansible.builtin.debug:
+    msg: "{{ root_app_apply.stdout }}"
+
+# ── Final status ──────────────────────────────────────────────────────────────
+
+- name: Show all ArgoCD pods
+  ansible.builtin.command: kubectl get pods -n argocd
+  environment:
+    KUBECONFIG: /root/.kube/config
+  changed_when: false
+  register: argocd_pods
+
+- name: Display ArgoCD pods
+  ansible.builtin.debug:
+    msg: "{{ argocd_pods.stdout_lines }}"

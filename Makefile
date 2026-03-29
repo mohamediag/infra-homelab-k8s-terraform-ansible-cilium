@@ -29,7 +29,7 @@ check-local: ## Verify local prerequisites (tools, env vars, SSH connectivity)
 host-prepare: ## Prepare Hetzner host: install KVM/libvirt, configure networking
 	cd $(ANSIBLE_DIR) && ansible-playbook playbooks/00-host-prepare.yml \
 		-i "$(HETZNER_IP)," \
-		-e "ansible_user=root ansible_ssh_private_key_file=$(SSH_KEY) ansible_ssh_common_args='-o StrictHostKeyChecking=no' my_public_ip=$(PUBLIC_IP)"
+		-e "ansible_user=root ansible_ssh_private_key_file=$(SSH_KEY) ansible_ssh_common_args='-o StrictHostKeyChecking=no' my_public_ip=$(PUBLIC_IP) ingress_lb_ip=10.0.0.200"
 
 # ── Terraform (VM provisioning) ───────────────────────────────────────────────
 
@@ -58,6 +58,16 @@ cluster: ## Bootstrap K8s cluster (all Ansible playbooks 01-07)
 .PHONY: fetch-kubeconfig
 fetch-kubeconfig: ## Fetch kubeconfig from cp-01 to ./kubeconfig-local.yml
 	cd $(ANSIBLE_DIR) && ansible-playbook playbooks/99-fetch-kubeconfig.yml
+
+# ── ArgoCD ────────────────────────────────────────────────────────────────────
+
+.PHONY: argocd
+argocd: ## Bootstrap ArgoCD only (playbook 07)
+	cd $(ANSIBLE_DIR) && ansible-playbook playbooks/07-argocd.yml
+
+.PHONY: argocd-ui
+argocd-ui: ## Port-forward ArgoCD UI to localhost:8080
+	KUBECONFIG=./kubeconfig-local.yml kubectl port-forward svc/argocd-server -n argocd 8080:80
 
 # ── kubectl access via SSH tunnel ────────────────────────────────────────────
 

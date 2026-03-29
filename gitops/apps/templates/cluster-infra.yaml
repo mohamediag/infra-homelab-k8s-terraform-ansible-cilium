@@ -1,0 +1,25 @@
+# ==============================================================================
+# cluster-infra Application
+# ==============================================================================
+# Deploys Cilium LB-IPAM pool, L2 announcement policy, and Gateway.
+# These are plain manifests (not a Helm chart).
+# ==============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cluster-infra
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.spec.project }}
+  source:
+    repoURL: {{ .Values.spec.repoURL }}
+    targetRevision: {{ .Values.spec.targetRevision }}
+    path: gitops/cluster-infra
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    {{- toYaml .Values.spec.syncPolicy | nindent 4 }}

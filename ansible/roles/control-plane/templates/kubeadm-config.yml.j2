@@ -32,6 +32,11 @@ kubernetesVersion: "v{{ k8s_version }}.0"
 
 controlPlaneEndpoint: "{{ ansible_host }}:6443"
 
+# certSANs: adds 127.0.0.1 so kubectl works via SSH tunnel without TLS errors
+certSANs:
+  - "127.0.0.1"
+  - "{{ ansible_host }}"
+
 networking:
   podSubnet: "{{ pod_cidr }}"         # 10.244.0.0/16 — managed by Cilium
   serviceSubnet: "{{ service_cidr }}" # 10.96.0.0/12 — default

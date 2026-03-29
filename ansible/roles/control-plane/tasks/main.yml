@@ -89,3 +89,30 @@
 - name: Show join command (for debugging)
   ansible.builtin.debug:
     msg: "Join command generated: {{ join_command_raw.stdout[:50] }}..."
+
+# ── Install Helm ──────────────────────────────────────────────────────────────
+# Helm is needed on the control plane to install ArgoCD and manage charts.
+# Only installed here (not on workers) — workers have no use for Helm.
+
+- name: Check if Helm is already installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/helm
+  register: helm_installed
+
+- name: Install Helm (latest stable)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  args:
+    executable: /bin/bash
+  when: not helm_installed.stat.exists
+  changed_when: true
+
+- name: Verify Helm installation
+  ansible.builtin.command: helm version --short
+  register: helm_version
+  changed_when: false
+
+- name: Show Helm version
+  ansible.builtin.debug:
+    msg: "{{ helm_version.stdout }}"

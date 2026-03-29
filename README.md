@@ -24,11 +24,10 @@ Production-grade Kubernetes cluster on a single Hetzner EX44 bare-metal server, 
 - **Terraform** (`dmacvicar/libvirt`) — VM provisioning over SSH
 - **Ansible** — OS configuration + Kubernetes bootstrap
 - **kubeadm** — Kubernetes cluster initialization
-- **Cilium** — CNI with kube-proxy replacement (eBPF mode)
+- **Cilium** — CNI with kube-proxy replacement (eBPF mode), Gateway API, LB-IPAM, L2 announcements
 - **Hubble** — Network observability UI
-- **MetalLB** — LoadBalancer IPs for bare metal
+- **ArgoCD** — GitOps continuous delivery
 - **cert-manager** — Automatic TLS certificates
-- **Nginx Ingress** — HTTP/HTTPS routing
 
 ---
 
@@ -114,7 +113,7 @@ Runs all Ansible playbooks in order:
 4. Control plane initialization (`kubeadm init`)
 5. Worker nodes join the cluster
 6. Cilium CNI installation
-7. MetalLB, metrics-server, cert-manager, Nginx Ingress
+7. ArgoCD bootstrap (GitOps App of Apps)
 
 ### 5. Fetch kubeconfig
 ```bash
@@ -222,14 +221,6 @@ Common causes:
 - kube-proxy still running (should have been skipped by kubeadm config)
 - Wrong `k8sServiceHost` — must be cp-01's internal IP (`10.0.0.10`)
 
-### MetalLB not assigning IPs
-```bash
-kubectl describe svc <service-name>
-kubectl logs -n metallb-system deployment/controller
-```
-- Ensure the service type is `LoadBalancer`
-- Verify the IP pool range doesn't conflict with existing hosts
-
 ### nodes stuck in NotReady
 Usually means Cilium isn't fully up yet:
 ```bash
@@ -272,8 +263,13 @@ cilium status --wait
 │   │   ├── control-plane/      # kubeadm init
 │   │   ├── workers/            # kubeadm join
 │   │   ├── cilium/             # CNI installation
-│   │   └── cluster-essentials/ # MetalLB, cert-manager, etc.
+│   │   └── argocd/             # ArgoCD bootstrap + App of Apps
 │   └── playbooks/              # Ordered playbooks
+├── gitops/                       # ArgoCD-managed apps (App of Apps)
+│   ├── apps/                     # Root Helm chart (generates ArgoCD Applications)
+│   ├── argocd/                   # ArgoCD Helm values
+│   ├── cert-manager/             # cert-manager manifests
+│   └── cluster-infra/            # LB pool, L2 policy, Gateway
 └── docs/
     ├── SPEC-INFRA.md           # Infrastructure specification (read-only)
     └── PROJECT.md              # Architecture deep-dive

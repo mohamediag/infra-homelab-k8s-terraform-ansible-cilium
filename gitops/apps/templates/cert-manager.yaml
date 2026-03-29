@@ -1,0 +1,29 @@
+# ==============================================================================
+# cert-manager Application
+# ==============================================================================
+# Automates TLS certificate issuance and renewal.
+# Installed via Helm chart from Jetstack.
+# ==============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.spec.project }}
+  source:
+    repoURL: https://charts.jetstack.io
+    chart: cert-manager
+    targetRevision: v1.17.1
+    helm:
+      values: |
+        crds:
+          enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    {{- toYaml .Values.spec.syncPolicy | nindent 4 }}

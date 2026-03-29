@@ -1,0 +1,16 @@
+# ==============================================================================
+# CiliumL2AnnouncementPolicy — L2 (ARP) announcements for LB IPs
+# ==============================================================================
+# Replaces MetalLB's L2Advertisement. Cilium responds to ARP requests for
+# LoadBalancer IPs, making the node act as the "owner" of those IPs on the
+# bridge network.
+# ==============================================================================
+
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: k8s-l2-policy
+spec:
+  # Announce on all interfaces (the bridge network ens3)
+  loadBalancerIPs: true
+  externalIPs: true

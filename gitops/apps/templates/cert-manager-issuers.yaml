@@ -1,0 +1,27 @@
+# ==============================================================================
+# cert-manager ClusterIssuers Application
+# ==============================================================================
+# Deploys ClusterIssuer resources after cert-manager is running.
+# Separated from cert-manager chart because CRDs must exist first.
+# ==============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager-issuers
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.spec.project }}
+  source:
+    repoURL: {{ .Values.spec.repoURL }}
+    targetRevision: {{ .Values.spec.targetRevision }}
+    path: gitops/cert-manager/manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    {{- toYaml .Values.spec.syncPolicy | nindent 4 }}

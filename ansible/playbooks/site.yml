@@ -27,5 +27,5 @@
 - name: "06 — Install Cilium CNI (cp-01)"
   import_playbook: 06-cilium.yml
 
-- name: "07 — Install cluster essentials (cp-01)"
-  import_playbook: 07-essentials.yml
+- name: "07 — Bootstrap ArgoCD and GitOps (cp-01)"
+  import_playbook: 07-argocd.yml

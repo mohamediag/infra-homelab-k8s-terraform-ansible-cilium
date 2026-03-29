@@ -69,3 +69,4 @@
 - name: Show kubeadm version
   ansible.builtin.debug:
     msg: "{{ kubeadm_version.stdout }}"
+

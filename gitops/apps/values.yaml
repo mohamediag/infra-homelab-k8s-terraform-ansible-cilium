@@ -1,0 +1,19 @@
+# ==============================================================================
+# gitops/apps/values.yaml — Shared values for all child Applications
+# ==============================================================================
+
+spec:
+  # Git repository where all manifests live (this repo)
+  repoURL: https://github.com/domusic/infra-homelab-k8s-terraform-ansible-cilium.git
+  targetRevision: main
+
+  # ArgoCD project (default is fine for a homelab)
+  project: default
+
+  # Common sync policy for all Applications
+  syncPolicy:
+    automated:
+      prune: true       # Delete resources removed from Git
+      selfHeal: true    # Revert manual changes made outside Git
+    syncOptions:
+      - CreateNamespace=true

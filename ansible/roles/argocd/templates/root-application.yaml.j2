@@ -1,0 +1,32 @@
+# ==============================================================================
+# Root "App of Apps" Application
+# ==============================================================================
+# This Application tells ArgoCD to watch gitops/apps/ in this repo.
+# ArgoCD renders the Helm chart there, which produces child Applications
+# for every add-on (cert-manager, metrics-server, cluster-infra, etc.).
+#
+# ArgoCD also manages itself via the argocd Application template.
+# ==============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: {{ argocd_repo_url }}
+    targetRevision: {{ argocd_target_revision }}
+    path: gitops/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

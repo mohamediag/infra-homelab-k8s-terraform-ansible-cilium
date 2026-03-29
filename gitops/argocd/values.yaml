@@ -1,0 +1,43 @@
+# ==============================================================================
+# gitops/argocd/values.yaml — ArgoCD Helm chart values
+# ==============================================================================
+# Non-HA setup for homelab. ArgoCD UI accessed via SSH tunnel / port-forward.
+#
+# Chart: argo-cd (https://argoproj.github.io/argo-helm)
+# ==============================================================================
+
+# -- Global settings --
+global:
+  logging:
+    level: info
+
+# -- Server --
+server:
+  # Run in insecure mode (no TLS termination at the server).
+  # We access the UI via SSH tunnel, so TLS is handled by the tunnel.
+  extraArgs:
+    - --insecure
+
+# -- Dex (OIDC provider) --
+# Disabled — we use the built-in admin account for a homelab.
+dex:
+  enabled: false
+
+# -- Notifications --
+# Disabled — not needed for a homelab.
+notifications:
+  enabled: false
+
+# -- ApplicationSet controller --
+applicationSet:
+  enabled: true
+
+# -- Configs --
+configs:
+  params:
+    # Insecure mode — no TLS at the ArgoCD server
+    server.insecure: true
+
+  cm:
+    # Increase status processing for responsiveness
+    timeout.reconciliation: 180s

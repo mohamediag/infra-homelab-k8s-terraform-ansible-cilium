@@ -35,8 +35,16 @@ control_plane_host: "cp-01"
 # sandbox_image must match the pause container version for Kubernetes 1.31
 containerd_sandbox_image: "registry.k8s.io/pause:3.10"
 
-# ── MetalLB ───────────────────────────────────────────────────────────────────
-metallb_ip_range: "10.0.0.200-10.0.0.250"
+# ── Ingress / Load balancer ───────────────────────────────────────────────────
+# IP assigned to the primary Gateway / LoadBalancer service by Cilium LB-IPAM.
+# DNAT rules on the Hetzner host forward ports 80/443 to this IP.
+ingress_lb_ip: "10.0.0.200"
 
 # ── Timezone ──────────────────────────────────────────────────────────────────
 cluster_timezone: "UTC"
+
+# ── ArgoCD ────────────────────────────────────────────────────────────────────
+# Git repo and branch ArgoCD watches for the App of Apps pattern.
+# Change argocd_target_revision to a branch name when testing.
+argocd_repo_url: "https://github.com/domusic/infra-homelab-k8s-terraform-ansible-cilium.git"
+argocd_target_revision: "main"

@@ -1,0 +1,17 @@
+---
+# ==============================================================================
+# playbooks/07-argocd.yml — Bootstrap ArgoCD and App of Apps
+# ==============================================================================
+# Installs ArgoCD via Helm and creates the root Application that manages
+# all cluster add-ons via GitOps from the gitops/ directory.
+#
+# Replaces the old 07-essentials.yml (MetalLB, nginx, etc are now ArgoCD-managed).
+# ==============================================================================
+
+- name: Bootstrap ArgoCD and GitOps
+  hosts: control_plane
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - role: argocd

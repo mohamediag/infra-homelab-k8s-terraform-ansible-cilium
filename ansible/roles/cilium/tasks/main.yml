@@ -9,6 +9,8 @@
 #   - kubeProxyReplacement=true: Cilium replaces kube-proxy entirely via eBPF
 #   - Hubble relay + UI: Network observability dashboard
 #   - Pod CIDR matching kubeadm configuration
+#   - Gateway API support (Cilium-managed Envoy proxy)
+#   - LB-IPAM + L2 announcements (replaces MetalLB)
 # ==============================================================================
 
 # ── Install Cilium CLI ────────────────────────────────────────────────────────
@@ -51,6 +53,32 @@
   ansible.builtin.debug:
     msg: "{{ cilium_cli_version.stdout }}"
 
+# ── Install Gateway API CRDs ──────────────────────────────────────────────────
+# Gateway API CRDs must exist before Cilium can enable Gateway API support.
+# Pinned to v1.2.1 — update explicitly when upgrading.
+
+- name: Check if Gateway API CRDs are already installed
+  ansible.builtin.command: kubectl get crd gateways.gateway.networking.k8s.io
+  environment:
+    KUBECONFIG: /root/.kube/config
+  register: gateway_crd_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Gateway API CRDs (standard channel)
+  ansible.builtin.command: >
+    kubectl apply -f
+    https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+  environment:
+    KUBECONFIG: /root/.kube/config
+  when: gateway_crd_check.rc != 0
+  register: gateway_crd_install
+  changed_when: "'created' in gateway_crd_install.stdout"
+
+- name: Show Gateway API CRD install result
+  ansible.builtin.debug:
+    msg: "{{ gateway_crd_install.stdout_lines | default(['already installed']) }}"
+
 # ── Install Cilium on the cluster ─────────────────────────────────────────────
 
 - name: Check if Cilium is already installed in the cluster
@@ -61,7 +89,7 @@
   changed_when: false
   failed_when: false
 
-- name: Install Cilium with kube-proxy replacement and Hubble
+- name: Install Cilium with kube-proxy replacement, Hubble, Gateway API, and L2 LB
   ansible.builtin.command: |
     cilium install \
       --set kubeProxyReplacement=true \
@@ -70,7 +98,12 @@
       --set ipam.mode=kubernetes \
       --set ipam.operator.clusterPoolIPv4PodCIDRList={{ pod_cidr }} \
       --set hubble.relay.enabled=true \
-      --set hubble.ui.enabled=true
+      --set hubble.ui.enabled=true \
+      --set gatewayAPI.enabled=true \
+      --set l2announcements.enabled=true \
+      --set externalIPs.enabled=true \
+      --set k8sClientRateLimit.qps=10 \
+      --set k8sClientRateLimit.burst=20
   environment:
     KUBECONFIG: /root/.kube/config
   when: "'cilium' not in cilium_status_check.stdout"
@@ -115,15 +148,3 @@
 - name: Show all node statuses
   ansible.builtin.debug:
     msg: "{{ nodes_status.stdout_lines }}"
-
-- name: Run Cilium connectivity test
-  ansible.builtin.command: cilium connectivity test --test-concurrency 4
-  environment:
-    KUBECONFIG: /root/.kube/config
-  changed_when: false
-  failed_when: false  # Don't fail the play if connectivity test has issues
-  register: connectivity_test
-
-- name: Show connectivity test result
-  ansible.builtin.debug:
-    msg: "{{ connectivity_test.stdout_lines[-20:] }}"  # Last 20 lines

@@ -1,0 +1,24 @@
+# ==============================================================================
+# ClusterIssuer — Let's Encrypt staging
+# ==============================================================================
+# Uses HTTP-01 challenge via Gateway API (not nginx ingress class).
+# Switch to production when ready: acme-v02.api.letsencrypt.org/directory
+# ==============================================================================
+
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: admin@example.com
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    solvers:
+      - http01:
+          gatewayHTTPRoute:
+            parentRefs:
+              - name: main-gateway
+                namespace: default
+                kind: Gateway

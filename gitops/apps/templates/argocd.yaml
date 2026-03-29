@@ -1,0 +1,46 @@
+# ==============================================================================
+# ArgoCD self-managed Application
+# ==============================================================================
+# ArgoCD manages its own Helm chart — upgrades are done via Git commits.
+# Values are sourced from gitops/argocd/values.yaml in this repo.
+# ==============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.spec.project }}
+  source:
+    repoURL: https://argoproj.github.io/argo-helm
+    chart: argo-cd
+    targetRevision: 7.8.14
+    helm:
+      releaseName: argocd
+      valueFiles: []
+      values: |
+        global:
+          logging:
+            level: info
+        server:
+          extraArgs:
+            - --insecure
+        dex:
+          enabled: false
+        notifications:
+          enabled: false
+        applicationSet:
+          enabled: true
+        configs:
+          params:
+            server.insecure: true
+          cm:
+            timeout.reconciliation: 180s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    {{- toYaml .Values.spec.syncPolicy | nindent 4 }}
