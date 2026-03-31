@@ -29,7 +29,7 @@ spec:
       helm:
         releaseName: cilium
         valueFiles:
-          - $values/cilium/values.yaml
+          - $values/gitops/cilium/values.yaml
     # Source 2: Values from this Git repo
     - repoURL: {{ .Values.spec.repoURL }}
       targetRevision: {{ .Values.spec.targetRevision }}
