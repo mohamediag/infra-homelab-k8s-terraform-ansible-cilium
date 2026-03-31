@@ -46,5 +46,5 @@ cluster_timezone: "UTC"
 # ── ArgoCD ────────────────────────────────────────────────────────────────────
 # Git repo and branch ArgoCD watches for the App of Apps pattern.
 # Change argocd_target_revision to a branch name when testing.
-argocd_repo_url: "https://github.com/domusic/infra-homelab-k8s-terraform-ansible-cilium.git"
+argocd_repo_url: "https://github.com/mohamediag/infra-homelab-k8s-terraform-ansible-cilium.git"
 argocd_target_revision: "main"

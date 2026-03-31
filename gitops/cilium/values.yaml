@@ -1,0 +1,54 @@
+# ==============================================================================
+# gitops/cilium/values.yaml — Cilium Helm chart values
+# ==============================================================================
+# These values are used by ArgoCD to manage Cilium after the initial bootstrap.
+# The initial install is done by Ansible (cilium CLI) — ArgoCD adopts ownership
+# for all subsequent upgrades and configuration changes.
+#
+# IMPORTANT: These values must match the Ansible cilium install flags exactly,
+# otherwise ArgoCD will detect drift and try to reconcile, which could cause
+# a brief networking disruption.
+# ==============================================================================
+
+# ── kube-proxy replacement ────────────────────────────────────────────────────
+# Cilium fully replaces kube-proxy via eBPF. kube-proxy was skipped during
+# kubeadm init (skipPhases: [addon/kube-proxy]).
+kubeProxyReplacement: true
+k8sServiceHost: "10.0.0.10"
+k8sServicePort: 6443
+
+# ── IPAM ──────────────────────────────────────────────────────────────────────
+# Use Kubernetes-native IPAM (pod CIDRs assigned by kube-controller-manager)
+ipam:
+  mode: kubernetes
+  operator:
+    clusterPoolIPv4PodCIDRList:
+      - "10.244.0.0/16"
+
+# ── Hubble (observability) ────────────────────────────────────────────────────
+hubble:
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+
+# ── Gateway API ───────────────────────────────────────────────────────────────
+# Cilium runs Envoy as the Gateway implementation. CRDs are installed
+# separately (see gateway-api-crds or Ansible role).
+gatewayAPI:
+  enabled: true
+
+# ── LB-IPAM + L2 announcements ───────────────────────────────────────────────
+# Replaces MetalLB. Cilium assigns LoadBalancer IPs from CiliumLoadBalancerIPPool
+# and announces them via ARP (L2). The pool and policy CRDs are in
+# gitops/cluster-infra/.
+l2announcements:
+  enabled: true
+externalIPs:
+  enabled: true
+
+# ── API server rate limits ────────────────────────────────────────────────────
+# Prevents Cilium operator from overwhelming the API server on a small cluster.
+k8sClientRateLimit:
+  qps: 10
+  burst: 20

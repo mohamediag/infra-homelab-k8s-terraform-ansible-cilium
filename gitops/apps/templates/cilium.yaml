@@ -1,0 +1,61 @@
+# ==============================================================================
+# Cilium CNI — ArgoCD-managed Application
+# ==============================================================================
+# Manages Cilium Helm chart for upgrades and config changes after bootstrap.
+#
+# BOOTSTRAP: Initial Cilium install is done by Ansible (cilium CLI).
+# ONGOING: ArgoCD adopts ownership and manages all future changes via Git.
+#
+# Uses multi-source: Helm chart from helm.cilium.io + values from this Git repo.
+# ==============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cilium
+  namespace: argocd
+  annotations:
+    # Cilium is critical infrastructure — sync after ArgoCD itself
+    argocd.argoproj.io/sync-wave: "-1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.spec.project }}
+  sources:
+    # Source 1: Cilium Helm chart
+    - repoURL: https://helm.cilium.io/
+      chart: cilium
+      targetRevision: 1.19.2
+      helm:
+        releaseName: cilium
+        valueFiles:
+          - $values/cilium/values.yaml
+    # Source 2: Values from this Git repo
+    - repoURL: {{ .Values.spec.repoURL }}
+      targetRevision: {{ .Values.spec.targetRevision }}
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+  ignoreDifferences:
+    # Cilium operator manages these fields dynamically
+    - group: apps
+      kind: DaemonSet
+      name: cilium
+      namespace: kube-system
+      jsonPointers:
+        - /spec/template/metadata/annotations
+    - group: apps
+      kind: Deployment
+      name: cilium-operator
+      namespace: kube-system
+      jsonPointers:
+        - /spec/template/metadata/annotations

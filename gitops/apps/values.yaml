@@ -4,7 +4,7 @@
 
 spec:
   # Git repository where all manifests live (this repo)
-  repoURL: https://github.com/domusic/infra-homelab-k8s-terraform-ansible-cilium.git
+  repoURL: https://github.com/mohamediag/infra-homelab-k8s-terraform-ansible-cilium.git
   targetRevision: main
 
   # ArgoCD project (default is fine for a homelab)
