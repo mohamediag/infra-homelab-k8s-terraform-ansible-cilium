@@ -18,7 +18,7 @@ metadata:
 spec:
   project: {{ .Values.spec.project }}
   source:
-    repoURL: https://gateway-api.sigs.k8s.io/charts
+    repoURL: ghcr.io/kubernetes-sigs/gateway-api/charts
     chart: gateway-api
     targetRevision: v1.2.1
     helm:
