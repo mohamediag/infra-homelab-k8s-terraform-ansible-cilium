@@ -18,16 +18,12 @@ metadata:
 spec:
   project: {{ .Values.spec.project }}
   source:
-    repoURL: ghcr.io/kubernetes-sigs/gateway-api/charts
-    chart: gateway-api
-    targetRevision: v1.2.1
-    helm:
-      values: |
-        webhook:
-          enabled: false
+    repoURL: {{ .Values.spec.repoURL }}
+    targetRevision: {{ .Values.spec.targetRevision }}
+    path: gitops/gateway-api
   destination:
     server: https://kubernetes.default.svc
-    namespace: gateway-system
+    namespace: default
   syncPolicy:
     automated:
       prune: true
