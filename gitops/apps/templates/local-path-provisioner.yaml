@@ -1,0 +1,27 @@
+# ==============================================================================
+# Local Path Provisioner — dynamic PV provisioning for local storage
+# ==============================================================================
+# Rancher's local-path-provisioner creates PVs on the node's filesystem.
+# Must sync before apps that need PVCs (Backstage, PostgreSQL, etc.).
+# ==============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: local-path-provisioner
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.spec.project }}
+  source:
+    repoURL: {{ .Values.spec.repoURL }}
+    targetRevision: {{ .Values.spec.targetRevision }}
+    path: gitops/local-path-provisioner
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: local-path-storage
+  syncPolicy:
+    {{- toYaml .Values.spec.syncPolicy | nindent 4 }}
