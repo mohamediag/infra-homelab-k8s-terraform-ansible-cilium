@@ -1,0 +1,13 @@
+# ==============================================================================
+# ClusterIssuer — Self-signed (for *.homelab.local domains)
+# ==============================================================================
+# Used for internal/homelab services where Let's Encrypt can't validate.
+# Browsers will show a certificate warning — this is expected.
+# ==============================================================================
+
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+spec:
+  selfSigned: {}

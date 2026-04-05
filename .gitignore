@@ -35,4 +35,5 @@ docs/
 
 # Logs
 *.log
-notes.md
+notes.sh
+doc/

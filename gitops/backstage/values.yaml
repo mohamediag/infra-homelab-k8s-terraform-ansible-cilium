@@ -17,10 +17,10 @@ backstage:
   appConfig:
     app:
       title: Homelab Backstage
-      baseUrl: http://backstage.homelab.local
+      baseUrl: https://backstage.homelab.local
 
     backend:
-      baseUrl: http://backstage.homelab.local
+      baseUrl: https://backstage.homelab.local
       listen:
         port: 7007
       database:

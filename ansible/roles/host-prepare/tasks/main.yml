@@ -112,6 +112,26 @@
 # Without it, DNAT also catches VM outbound traffic on ports 80/443 and
 # redirects it to the LB IP instead of the internet — breaking apt etc.
 
+# CRITICAL: This rule must be inserted at the TOP of the FORWARD chain (action: insert).
+# Libvirt injects its own LIBVIRT_FWI chain that REJECTs all NEW connections to
+# the VM bridge (virbr1). Without this rule above libvirt's chains, DNAT'd
+# packets get rewritten in PREROUTING but then rejected in FORWARD.
+# See doc/LIBVIRT_DNAT_PITFALL.md for the full explanation.
+- name: Allow DNAT'd ingress traffic to reach the LB IP (must be above libvirt chains)
+  ansible.builtin.iptables:
+    chain: FORWARD
+    action: insert
+    rule_num: "1"
+    in_interface: "{{ host_public_interface | default('enp5s0') }}"
+    destination: "{{ ingress_lb_ip }}"
+    protocol: tcp
+    match: multiport
+    destination_ports:
+      - "80"
+      - "443"
+    jump: ACCEPT
+    comment: "Allow DNAT'd HTTP/HTTPS to Cilium Gateway LB"
+
 - name: DNAT port 80 to ingress LB IP
   ansible.builtin.iptables:
     table: nat
