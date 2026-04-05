@@ -14,31 +14,36 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: {{ .Values.spec.project }}
-  source:
-    repoURL: https://argoproj.github.io/argo-helm
-    chart: argo-cd
-    targetRevision: 7.8.14
-    helm:
-      releaseName: argocd
-      valueFiles: []
-      values: |
-        global:
-          logging:
-            level: info
-        server:
-          extraArgs:
-            - --insecure
-        dex:
-          enabled: false
-        notifications:
-          enabled: false
-        applicationSet:
-          enabled: true
-        configs:
-          params:
-            server.insecure: true
-          cm:
-            timeout.reconciliation: 180s
+  sources:
+    # Source 1: ArgoCD Helm chart
+    - repoURL: https://argoproj.github.io/argo-helm
+      chart: argo-cd
+      targetRevision: 7.8.14
+      helm:
+        releaseName: argocd
+        valueFiles: []
+        values: |
+          global:
+            logging:
+              level: info
+          server:
+            extraArgs:
+              - --insecure
+          dex:
+            enabled: false
+          notifications:
+            enabled: false
+          applicationSet:
+            enabled: true
+          configs:
+            params:
+              server.insecure: true
+            cm:
+              timeout.reconciliation: 180s
+    # Source 2: Extra manifests (HTTPRoute)
+    - repoURL: {{ .Values.spec.repoURL }}
+      targetRevision: {{ .Values.spec.targetRevision }}
+      path: gitops/argocd/manifests
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
