@@ -1,0 +1,57 @@
+# ==============================================================================
+# gitops/backstage/values.yaml — Backstage Helm chart values
+# ==============================================================================
+
+backstage:
+  image:
+    registry: ghcr.io
+    repository: mohamediag/backstage
+    tag: latest
+
+  resources:
+    requests:
+      memory: 256Mi
+    limits:
+      memory: 256Mi
+
+  appConfig:
+    app:
+      title: Homelab Backstage
+      baseUrl: http://backstage.homelab.local
+
+    backend:
+      baseUrl: http://backstage.homelab.local
+      listen:
+        port: 7007
+      database:
+        client: pg
+        connection:
+          host: ${POSTGRES_HOST}
+          port: ${POSTGRES_PORT}
+          user: ${POSTGRES_USER}
+          password: ${POSTGRES_PASSWORD}
+
+  extraEnvVars:
+    - name: POSTGRES_HOST
+      value: backstage-postgresql
+    - name: POSTGRES_PORT
+      value: "5432"
+    - name: POSTGRES_USER
+      value: backstage
+    - name: POSTGRES_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: backstage-postgresql
+          key: password
+
+# ── PostgreSQL (Bitnami subchart) ─────────────────────────────────────────────
+postgresql:
+  enabled: true
+  auth:
+    username: backstage
+    password: backstage
+    database: backstage
+  primary:
+    persistence:
+      enabled: true
+      size: 2Gi
