@@ -1,6 +1,9 @@
 # ==============================================================================
 # gitops/backstage/values.yaml — Backstage Helm chart values
 # ==============================================================================
+# App config lives in the Docker image (app-config.yaml + app-config.production.yaml).
+# This file only handles k8s-specific concerns: image, resources, env vars, PostgreSQL.
+# ==============================================================================
 
 backstage:
   image:
@@ -14,29 +17,6 @@ backstage:
       memory: 512Mi
     limits:
       memory: 512Mi
-
-  appConfig:
-    app:
-      title: Homelab Backstage
-      baseUrl: https://backstage.homelab.local
-
-    backend:
-      baseUrl: https://backstage.homelab.local
-      listen:
-        port: 7007
-      auth:
-        dangerouslyDisableDefaultAuthPolicy: true
-      database:
-        client: pg
-        connection:
-          host: ${POSTGRES_HOST}
-          port: ${POSTGRES_PORT}
-          user: ${POSTGRES_USER}
-          password: ${POSTGRES_PASSWORD}
-
-    auth:
-      providers:
-        guest: {}
 
   extraEnvVars:
     - name: POSTGRES_HOST
