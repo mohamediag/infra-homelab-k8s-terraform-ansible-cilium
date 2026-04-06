@@ -24,6 +24,8 @@ backstage:
       baseUrl: https://backstage.homelab.local
       listen:
         port: 7007
+      auth:
+        dangerouslyDisableDefaultAuthPolicy: true
       database:
         client: pg
         connection:
@@ -31,6 +33,10 @@ backstage:
           port: ${POSTGRES_PORT}
           user: ${POSTGRES_USER}
           password: ${POSTGRES_PASSWORD}
+
+    auth:
+      providers:
+        guest: {}
 
   extraEnvVars:
     - name: POSTGRES_HOST
