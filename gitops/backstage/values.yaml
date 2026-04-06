@@ -7,6 +7,7 @@ backstage:
     registry: ghcr.io
     repository: mohamediag/backstage
     tag: latest
+    pullPolicy: Always
 
   resources:
     requests:
