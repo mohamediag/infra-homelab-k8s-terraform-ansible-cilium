@@ -1,0 +1,97 @@
+# ==============================================================================
+# Vault auth bootstrap Job
+# ==============================================================================
+# Idempotent one-shot configuration of Vault: enables KV v2 at `secret/`,
+# enables the Kubernetes auth method, writes a read-only policy and binds
+# the ESO ServiceAccount to it. Replaces the manual `kubectl exec` commands.
+#
+# Runs as a PostSync hook on the Vault ArgoCD Application: every time the
+# Vault Application syncs (e.g. after a fresh cluster bootstrap), this Job
+# is recreated and runs to completion.
+#
+# Prerequisites (one-shot, NOT in git):
+#   - Vault initialized + unsealed (manual; see vault.yaml header).
+#   - Root token stored in a Kubernetes Secret named `vault-root-token` in
+#     the `vault` namespace, key `token`. Apply it once:
+#
+#       kubectl -n vault create secret generic vault-root-token \
+#         --from-literal=token=<ROOT_TOKEN>
+#
+#   On every Vault pod restart you still need to manually unseal. Auto-unseal
+#   (e.g. via Azure Key Vault Transit) is a v2 enhancement.
+# ==============================================================================
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-auth-bootstrap
+  namespace: vault
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 10
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: vault-auth-bootstrap
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: hashicorp/vault:1.17.2
+          env:
+            - name: VAULT_ADDR
+              value: http://vault.vault.svc.cluster.local:8200
+            - name: VAULT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: vault-root-token
+                  key: token
+          command: ["/bin/sh", "-e", "-c"]
+          args:
+            - |
+              echo "==> Waiting for Vault to be unsealed (5min timeout)"
+              for i in $(seq 1 60); do
+                if vault status -format=json 2>/dev/null | grep -q '"sealed": false'; then
+                  echo "Vault is unsealed."
+                  break
+                fi
+                echo "Attempt $i/60: still sealed or unreachable, retrying in 5s..."
+                sleep 5
+              done
+
+              if ! vault status -format=json 2>/dev/null | grep -q '"sealed": false'; then
+                echo "ERROR: Vault did not unseal within timeout."
+                exit 1
+              fi
+
+              echo "==> Enabling KV v2 at secret/ (if needed)"
+              vault secrets list -format=json | grep -q '"secret/"' || \
+                vault secrets enable -path=secret -version=2 kv
+
+              echo "==> Enabling kubernetes auth method (if needed)"
+              vault auth list -format=json | grep -q '"kubernetes/"' || \
+                vault auth enable kubernetes
+
+              echo "==> Configuring kubernetes auth method"
+              vault write auth/kubernetes/config \
+                kubernetes_host="https://kubernetes.default.svc"
+
+              echo "==> Writing read-only policy for ESO"
+              cat > /tmp/eso-policy.hcl <<'POLICY'
+              path "secret/data/*"     { capabilities = ["read"] }
+              path "secret/metadata/*" { capabilities = ["read"] }
+              POLICY
+              vault policy write external-secrets-read /tmp/eso-policy.hcl
+
+              echo "==> Binding ESO SA (external-secrets/external-secrets) to policy"
+              vault write auth/kubernetes/role/external-secrets \
+                bound_service_account_names=external-secrets \
+                bound_service_account_namespaces=external-secrets \
+                policies=external-secrets-read \
+                ttl=1h
+
+              echo
+              echo "DONE - Vault auth bootstrap completed successfully"
