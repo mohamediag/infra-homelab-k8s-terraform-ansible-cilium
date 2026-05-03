@@ -37,3 +37,4 @@ docs/
 *.log
 notes.sh
 doc/
+tmp/
