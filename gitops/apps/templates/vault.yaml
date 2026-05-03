@@ -1,0 +1,75 @@
+# ==============================================================================
+# HashiCorp Vault Application
+# ==============================================================================
+# Secret storage backend for the IDP. Single-replica with file storage —
+# homelab-grade, not HA. Multi-source: Helm chart + extra manifests (HTTPRoute).
+#
+# After ArgoCD syncs this Application, Vault must be initialized and unsealed
+# once (manual bootstrap):
+#
+#   kubectl -n vault exec -it vault-0 -- vault operator init \
+#     -key-shares=1 -key-threshold=1
+#   kubectl -n vault exec -it vault-0 -- vault operator unseal <UNSEAL_KEY>
+#   kubectl -n vault exec -it vault-0 -- vault login <ROOT_TOKEN>
+#   kubectl -n vault exec -it vault-0 -- vault secrets enable \
+#     -path=secret -version=2 kv
+#
+# Then enable Kubernetes auth + create the ESO role/policy (see
+# gitops/cluster-infra/cluster-secret-store.yaml header for the commands).
+# ==============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vault
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.spec.project }}
+  sources:
+    # Source 1: Vault Helm chart
+    - repoURL: https://helm.releases.hashicorp.com
+      chart: vault
+      targetRevision: 0.28.1
+      helm:
+        releaseName: vault
+        values: |
+          server:
+            standalone:
+              enabled: true
+              config: |
+                ui = true
+
+                listener "tcp" {
+                  address         = "[::]:8200"
+                  cluster_address = "[::]:8201"
+                  tls_disable     = 1
+                }
+
+                storage "file" {
+                  path = "/vault/data"
+                }
+            ha:
+              enabled: false
+            dataStorage:
+              enabled: true
+              size: 5Gi
+              storageClass: local-path
+            serviceAccount:
+              create: true
+              name: vault
+          ui:
+            enabled: true
+          injector:
+            # Using ESO instead of the Vault Agent injector
+            enabled: false
+    # Source 2: Extra manifests (HTTPRoute)
+    - repoURL: {{ .Values.spec.repoURL }}
+      targetRevision: {{ .Values.spec.targetRevision }}
+      path: gitops/vault/manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vault
+  syncPolicy:
+    {{- toYaml .Values.spec.syncPolicy | nindent 4 }}
