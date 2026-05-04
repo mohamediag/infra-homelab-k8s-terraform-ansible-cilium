@@ -2,8 +2,10 @@ apiVersion: platform.homelab.io/v1alpha1
 kind: App
 metadata:
   name: sample-service-dev
-  namespace: gitops-claims
+  namespace: default
 spec:
+  compositionRef:
+    name: xapp-kubernetes
   parameters:
     name: sample-service
     owner: team-platform
@@ -24,7 +26,7 @@ spec:
       - DATABASE_URL
     exposure:
       type: none
-      host: sample-service-dev.example.com
+      host: sample-service.example.com
     healthCheck:
       liveness: /healthz
       readiness: /readyz
