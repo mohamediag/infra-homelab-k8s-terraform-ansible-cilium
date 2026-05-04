@@ -24,7 +24,7 @@ kubeconfig-local.yml
 .claude/
 
 # Docs (internal notes)
-docs/
+vault/init-vault.md
 
 # Editor and OS files
 .DS_Store
@@ -38,3 +38,4 @@ docs/
 notes.sh
 doc/
 tmp/
+/gitops/vault/init-vault.md

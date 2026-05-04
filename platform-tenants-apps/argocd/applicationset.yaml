@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: tenants-apps
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/mohamediag/infra-homelab-k8s-terraform-ansible-cilium.git
+        revision: main
+        directories:
+          - path: platform-tenants-apps/apps/*/dev
+          - path: platform-tenants-apps/apps/*/staging
+          - path: platform-tenants-apps/apps/*/prod
+  template:
+    metadata:
+      name: '{{path[2]}}-{{path[3]}}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/managed-by: applicationset
+        app.platform.homelab.io/name: '{{path[2]}}'
+        app.platform.homelab.io/environment: '{{path[3]}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/mohamediag/infra-homelab-k8s-terraform-ansible-cilium.git
+        targetRevision: main
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - SkipDryRunOnMissingResource=true

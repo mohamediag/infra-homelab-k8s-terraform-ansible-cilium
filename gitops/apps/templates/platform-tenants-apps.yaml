@@ -1,0 +1,27 @@
+# ==============================================================================
+# Platform Tenants Apps Application
+# ==============================================================================
+# Deploys the tenant-facing ApplicationSet from platform-tenants-apps/argocd.
+# This syncs after crossplane-platform so platform APIs are available first.
+# ==============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-tenants-apps
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.spec.project }}
+  source:
+    repoURL: {{ .Values.spec.repoURL }}
+    targetRevision: {{ .Values.spec.targetRevision }}
+    path: platform-tenants-apps/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    {{- toYaml .Values.spec.syncPolicy | nindent 4 }}

@@ -1,0 +1,30 @@
+# ==============================================================================
+# Crossplane Platform Resources Application
+# ==============================================================================
+# Applies Crossplane platform resources from this repo (providers, functions,
+# XRDs, Compositions). This syncs after the Crossplane Helm chart so CRDs and
+# controllers are present before these manifests reconcile.
+# ==============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: crossplane-platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.spec.project }}
+  source:
+    repoURL: {{ .Values.spec.repoURL }}
+    targetRevision: {{ .Values.spec.targetRevision }}
+    path: gitops/crossplane
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: crossplane-system
+  syncPolicy:
+    {{- toYaml .Values.spec.syncPolicy | nindent 4 }}
