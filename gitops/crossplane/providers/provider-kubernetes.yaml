@@ -1,0 +1,13 @@
+# ==============================================================================
+# Crossplane provider-kubernetes package
+# ==============================================================================
+# Installs provider-kubernetes so Compositions can manage in-cluster Kubernetes
+# objects through `kubernetes.crossplane.io/Object` managed resources.
+# ==============================================================================
+
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-kubernetes
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/provider-kubernetes:v1.2.1

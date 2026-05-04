@@ -1,0 +1,12 @@
+# ==============================================================================
+# Crossplane function-go-templating package
+# ==============================================================================
+# Installs the Go templating composition function used by pipeline Compositions.
+# ==============================================================================
+
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-go-templating
+spec:
+  package: xpkg.crossplane.io/crossplane-contrib/function-go-templating:v0.12.0

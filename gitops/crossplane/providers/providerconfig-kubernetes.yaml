@@ -1,0 +1,14 @@
+# ==============================================================================
+# ProviderConfig for provider-kubernetes (in-cluster identity)
+# ==============================================================================
+# Uses the provider pod's ServiceAccount credentials to talk to the same cluster.
+# Keep the name `default` so managed resources can omit providerConfigRef.
+# ==============================================================================
+
+apiVersion: kubernetes.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: default
+spec:
+  credentials:
+    source: InjectedIdentity
