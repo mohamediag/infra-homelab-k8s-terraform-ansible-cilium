@@ -26,11 +26,12 @@ spec:
             - missingkey=error
           template: |
             {{- $p := .observed.composite.resource.spec.parameters -}}
-            {{- $name := $p.name -}}
+            {{- $serviceName := $p.name -}}
+            {{- $name := $serviceName | lower | replace "_" "-" | replace "." "-" | replace " " "-" -}}
             {{- $owner := $p.owner -}}
             {{- $env := $p.environment -}}
             {{- $ns := printf "%s-%s" $name $env -}}
-            {{- $labels := dict "app.platform.homelab.io/name" $name "app.platform.homelab.io/owner" $owner "app.platform.homelab.io/environment" $env -}}
+            {{- $labels := dict "app.platform.homelab.io/name" $serviceName "app.platform.homelab.io/owner" $owner "app.platform.homelab.io/environment" $env -}}
             {{- $host := $p.exposure.host -}}
             {{- if and (eq $p.exposure.type "public") (ne $env "prod") -}}
             {{- $parts := splitList "." $p.exposure.host -}}
@@ -79,10 +80,14 @@ spec:
                     namespace: {{ $ns }}
                     labels:
                       {{- toYaml $labels | nindent 22 }}
+                  {{- if gt (len $p.config) 0 }}
                   data:
                     {{- range $k, $v := $p.config }}
                     {{ $k }}: {{ $v | quote }}
                     {{- end }}
+                  {{- else }}
+                  data: {}
+                  {{- end }}
 
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
@@ -137,10 +142,16 @@ spec:
                               httpGet:
                                 path: {{ $p.healthCheck.liveness }}
                                 port: http
+                              initialDelaySeconds: 10
+                              periodSeconds: 10
+                              timeoutSeconds: 2
                             readinessProbe:
                               httpGet:
                                 path: {{ $p.healthCheck.readiness }}
                                 port: http
+                              initialDelaySeconds: 5
+                              periodSeconds: 5
+                              timeoutSeconds: 2
                             envFrom:
                               - configMapRef:
                                   name: {{ $name }}-config
@@ -237,7 +248,11 @@ spec:
                     hostnames:
                       - {{ $host | quote }}
                     rules:
-                      - backendRefs:
+                      - matches:
+                          - path:
+                              type: PathPrefix
+                              value: /
+                        backendRefs:
                           - name: {{ $name }}
                             port: {{ $p.port }}
             {{- end }}

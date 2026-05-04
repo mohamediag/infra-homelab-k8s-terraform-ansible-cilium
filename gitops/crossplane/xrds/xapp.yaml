@@ -80,10 +80,12 @@ spec:
                         - limits
                     config:
                       type: object
+                      default: {}
                       additionalProperties:
                         type: string
                     secrets:
                       type: array
+                      default: []
                       items:
                         type: string
                     exposure:
@@ -97,16 +99,22 @@ spec:
                             - none
                         host:
                           type: string
+                          minLength: 1
                       required:
                         - type
                         - host
+                      x-kubernetes-validations:
+                        - rule: self.type != 'public' || size(self.host) > 0
+                          message: exposure.host is required when exposure.type is public
                     healthCheck:
                       type: object
                       properties:
                         liveness:
                           type: string
+                          minLength: 1
                         readiness:
                           type: string
+                          minLength: 1
                       required:
                         - liveness
                         - readiness
@@ -128,8 +136,6 @@ spec:
                     - port
                     - replicas
                     - resources
-                    - config
-                    - secrets
                     - exposure
                     - healthCheck
                     - metrics
