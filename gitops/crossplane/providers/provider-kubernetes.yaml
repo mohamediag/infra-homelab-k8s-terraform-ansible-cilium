@@ -9,5 +9,7 @@ apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-kubernetes
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   package: xpkg.upbound.io/crossplane-contrib/provider-kubernetes:v1.2.1
