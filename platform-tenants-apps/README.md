@@ -27,8 +27,9 @@ metadata:
   name: my-service              # one XR per env; uniqueness comes from namespace
   namespace: team-backend-dev   # team-env namespace (must exist)
 spec:
-  compositionRef:
-    name: app-kubernetes
+  crossplane:
+    compositionRef:
+      name: app-kubernetes
   parameters:
     name: my-service
     owner: team-backend

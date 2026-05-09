@@ -4,8 +4,9 @@ metadata:
   name: sample-service
   namespace: team-platform-dev
 spec:
-  compositionRef:
-    name: app-kubernetes
+  crossplane:
+    compositionRef:
+      name: app-kubernetes
   parameters:
     name: sample-service
     owner: team-platform
