@@ -10,8 +10,8 @@ spec:
     name: sample-service
     owner: team-platform
     environment: dev
-    image: ghcr.io/example/sample-service:latest
-    port: 8080
+    image: nginx:1.27
+    port: 80
     replicas: 1
     resources:
       requests:
@@ -22,14 +22,13 @@ spec:
         memory: 64Mi
     config:
       LOG_LEVEL: debug
-    secrets:
-      - DATABASE_URL
+    secrets: []
     exposure:
       type: none
       host: sample-service.example.com
     healthCheck:
-      liveness: /healthz
-      readiness: /readyz
+      liveness: /
+      readiness: /
     metrics:
-      enabled: true
+      enabled: false
       path: /metrics
