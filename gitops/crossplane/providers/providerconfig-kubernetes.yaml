@@ -1,12 +1,14 @@
 # ==============================================================================
-# ProviderConfig for provider-kubernetes (in-cluster identity)
+# ClusterProviderConfig for provider-kubernetes (in-cluster identity, v2 API)
 # ==============================================================================
-# Uses the provider pod's ServiceAccount credentials to talk to the same cluster.
+# Cluster-scoped config so namespaced Object MRs in any tenant namespace can
+# reference it without per-namespace ProviderConfigs. Uses the provider pod's
+# ServiceAccount to talk to the same cluster.
 # Keep the name `default` so managed resources can omit providerConfigRef.
 # ==============================================================================
 
-apiVersion: kubernetes.crossplane.io/v1alpha1
-kind: ProviderConfig
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: ClusterProviderConfig
 metadata:
   name: default
   annotations:
