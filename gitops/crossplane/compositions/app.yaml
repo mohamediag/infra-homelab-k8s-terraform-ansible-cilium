@@ -1,17 +1,18 @@
 # ==============================================================================
-# Composition: XApp -> Kubernetes runtime resources via provider-kubernetes
+# Composition: App (namespaced v2 XR) -> Kubernetes runtime resources
+# via provider-kubernetes.
 # ==============================================================================
 
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: xapp-kubernetes
+  name: app-kubernetes
   annotations:
     argocd.argoproj.io/sync-wave: "3"
 spec:
   compositeTypeRef:
     apiVersion: platform.homelab.io/v1alpha1
-    kind: XApp
+    kind: App
   mode: Pipeline
   pipeline:
     - step: render-resources

@@ -5,7 +5,7 @@ metadata:
   namespace: default
 spec:
   compositionRef:
-    name: xapp-kubernetes
+    name: app-kubernetes
   parameters:
     name: sample-service
     owner: team-platform

@@ -1,19 +1,21 @@
 # ==============================================================================
-# XRD: XApp (claim kind: App)
+# XRD: App (namespaced v2 XR — no Claim layer)
+# ==============================================================================
+# Crossplane v2 supports namespaced composite resources directly, so the
+# legacy Claim/XR split is no longer needed for namespaced workloads. Tenants
+# create `kind: App` in their namespace and Crossplane reconciles it directly.
 # ==============================================================================
 
-apiVersion: apiextensions.crossplane.io/v1
+apiVersion: apiextensions.crossplane.io/v2
 kind: CompositeResourceDefinition
 metadata:
-  name: xapps.platform.homelab.io
+  name: apps.platform.homelab.io
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 spec:
+  scope: Namespaced
   group: platform.homelab.io
   names:
-    kind: XApp
-    plural: xapps
-  claimNames:
     kind: App
     plural: apps
   versions:
