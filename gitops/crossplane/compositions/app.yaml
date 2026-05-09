@@ -34,16 +34,15 @@ spec:
             {{- $labels := dict "app.platform.homelab.io/name" $serviceName "app.platform.homelab.io/owner" $owner "app.platform.homelab.io/environment" $env -}}
             {{- $host := $p.exposure.host -}}
             {{- if and (eq $p.exposure.type "public") (ne $env "prod") -}}
-            {{- $parts := splitList "." $p.exposure.host -}}
-            {{- if ge (len $parts) 2 -}}
-            {{- $head := index $parts 0 -}}
-            {{- $tail := join "." (slice $parts 1) -}}
-            {{- $host = printf "%s-%s.%s" $head $env $tail -}}
-            {{- else -}}
-            {{- $host = printf "%s-%s" $p.exposure.host $env -}}
+              {{- $parts := splitList "." $p.exposure.host -}}
+              {{- if ge (len $parts) 2 -}}
+                {{- $head := index $parts 0 -}}
+                {{- $tail := join "." (slice $parts 1) -}}
+                {{- $host = printf "%s-%s.%s" $head $env $tail -}}
+              {{- else -}}
+                {{- $host = printf "%s-%s" $p.exposure.host $env -}}
+              {{- end -}}
             {{- end -}}
-            {{- end -}}
-
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -59,9 +58,7 @@ spec:
                   kind: Namespace
                   metadata:
                     name: {{ $ns }}
-                    labels:
-                      {{ toYaml $labels | nindent 22 }}
-
+                    labels: {{ toYaml $labels | nindent 22 }}
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -78,17 +75,14 @@ spec:
                   metadata:
                     name: {{ $name }}-config
                     namespace: {{ $ns }}
-                    labels:
-                      {{ toYaml $labels | nindent 22 }}
-                  {{ if gt (len $p.config) 0 }}
+                    labels: {{ toYaml $labels | nindent 22 }}
                   data:
-                    {{ range $k, $v := $p.config }}
+                    {{- if gt (len $p.config) 0 }}
+                    {{- range $k, $v := $p.config }}
                     {{ $k }}: {{ $v | quote }}
-                    {{ end }}
-                  {{ else }}
-                  data: {}
-                  {{ end }}
-
+                    {{- end }}
+                    {{- else }} {}
+                    {{- end }}
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -105,8 +99,7 @@ spec:
                   metadata:
                     name: {{ $name }}
                     namespace: {{ $ns }}
-                    labels:
-                      {{ toYaml $labels | nindent 22 }}
+                    labels: {{ toYaml $labels | nindent 22 }}
                   spec:
                     replicas: {{ $p.replicas }}
                     selector:
@@ -117,13 +110,15 @@ spec:
                       metadata:
                         labels:
                           app.kubernetes.io/name: {{ $name }}
-                          {{ toYaml $labels | nindent 26 }}
+                          {{- range $k, $v := $labels }}
+                          {{ $k }}: {{ $v | quote }}
+                          {{- end }}
+                        {{- if $p.metrics.enabled }}
                         annotations:
-                          {{ if $p.metrics.enabled }}
                           prometheus.io/scrape: "true"
                           prometheus.io/path: {{ $p.metrics.path | quote }}
                           prometheus.io/port: {{ printf "%d" $p.port | quote }}
-                          {{ end }}
+                        {{- end }}
                       spec:
                         containers:
                           - name: {{ $name }}
@@ -155,11 +150,10 @@ spec:
                             envFrom:
                               - configMapRef:
                                   name: {{ $name }}-config
-                              {{ range $secret := $p.secrets }}
+                              {{- range $secret := $p.secrets }}
                               - secretRef:
                                   name: {{ printf "%s-secret" ($secret | lower | replace "_" "-") }}
-                              {{ end }}
-
+                              {{- end }}
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -176,8 +170,7 @@ spec:
                   metadata:
                     name: {{ $name }}
                     namespace: {{ $ns }}
-                    labels:
-                      {{ toYaml $labels | nindent 22 }}
+                    labels: {{ toYaml $labels | nindent 22 }}
                   spec:
                     type: ClusterIP
                     selector:
@@ -188,8 +181,7 @@ spec:
                         targetPort: http
                         protocol: TCP
                         name: http
-
-            {{ range $secret := $p.secrets }}
+            {{- range $secret := $p.secrets }}
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -206,8 +198,7 @@ spec:
                   metadata:
                     name: {{ printf "%s-secret" ($secret | lower | replace "_" "-") }}
                     namespace: {{ $ns }}
-                    labels:
-                      {{ toYaml $labels | nindent 22 }}
+                    labels: {{ toYaml $labels | nindent 22 }}
                   spec:
                     refreshInterval: 1h
                     secretStoreRef:
@@ -220,9 +211,8 @@ spec:
                       - secretKey: {{ $secret }}
                         remoteRef:
                           key: {{ printf "%s/%s/%s" $name $env $secret }}
-            {{ end }}
-
-            {{ if eq $p.exposure.type "public" }}
+            {{- end }}
+            {{- if eq $p.exposure.type "public" }}
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -239,8 +229,7 @@ spec:
                   metadata:
                     name: {{ $name }}
                     namespace: {{ $ns }}
-                    labels:
-                      {{ toYaml $labels | nindent 22 }}
+                    labels: {{ toYaml $labels | nindent 22 }}
                   spec:
                     parentRefs:
                       - name: main-gateway
@@ -255,4 +244,4 @@ spec:
                         backendRefs:
                           - name: {{ $name }}
                             port: {{ $p.port }}
-            {{ end }}
+            {{- end }}
