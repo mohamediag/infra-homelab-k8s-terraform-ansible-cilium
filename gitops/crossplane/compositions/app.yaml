@@ -60,7 +60,7 @@ spec:
                   metadata:
                     name: {{ $ns }}
                     labels:
-                      {{- toYaml $labels | nindent 22 }}
+                      {{ toYaml $labels | nindent 22 }}
 
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
@@ -79,15 +79,15 @@ spec:
                     name: {{ $name }}-config
                     namespace: {{ $ns }}
                     labels:
-                      {{- toYaml $labels | nindent 22 }}
-                  {{- if gt (len $p.config) 0 }}
+                      {{ toYaml $labels | nindent 22 }}
+                  {{ if gt (len $p.config) 0 }}
                   data:
-                    {{- range $k, $v := $p.config }}
+                    {{ range $k, $v := $p.config }}
                     {{ $k }}: {{ $v | quote }}
-                    {{- end }}
-                  {{- else }}
+                    {{ end }}
+                  {{ else }}
                   data: {}
-                  {{- end }}
+                  {{ end }}
 
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
@@ -106,7 +106,7 @@ spec:
                     name: {{ $name }}
                     namespace: {{ $ns }}
                     labels:
-                      {{- toYaml $labels | nindent 22 }}
+                      {{ toYaml $labels | nindent 22 }}
                   spec:
                     replicas: {{ $p.replicas }}
                     selector:
@@ -117,13 +117,13 @@ spec:
                       metadata:
                         labels:
                           app.kubernetes.io/name: {{ $name }}
-                          {{- toYaml $labels | nindent 26 }}
+                          {{ toYaml $labels | nindent 26 }}
                         annotations:
-                          {{- if $p.metrics.enabled }}
+                          {{ if $p.metrics.enabled }}
                           prometheus.io/scrape: "true"
                           prometheus.io/path: {{ $p.metrics.path | quote }}
                           prometheus.io/port: {{ printf "%d" $p.port | quote }}
-                          {{- end }}
+                          {{ end }}
                       spec:
                         containers:
                           - name: {{ $name }}
@@ -155,10 +155,10 @@ spec:
                             envFrom:
                               - configMapRef:
                                   name: {{ $name }}-config
-                              {{- range $secret := $p.secrets }}
+                              {{ range $secret := $p.secrets }}
                               - secretRef:
                                   name: {{ printf "%s-secret" ($secret | lower | replace "_" "-") }}
-                              {{- end }}
+                              {{ end }}
 
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
@@ -177,7 +177,7 @@ spec:
                     name: {{ $name }}
                     namespace: {{ $ns }}
                     labels:
-                      {{- toYaml $labels | nindent 22 }}
+                      {{ toYaml $labels | nindent 22 }}
                   spec:
                     type: ClusterIP
                     selector:
@@ -189,7 +189,7 @@ spec:
                         protocol: TCP
                         name: http
 
-            {{- range $secret := $p.secrets }}
+            {{ range $secret := $p.secrets }}
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -207,7 +207,7 @@ spec:
                     name: {{ printf "%s-secret" ($secret | lower | replace "_" "-") }}
                     namespace: {{ $ns }}
                     labels:
-                      {{- toYaml $labels | nindent 22 }}
+                      {{ toYaml $labels | nindent 22 }}
                   spec:
                     refreshInterval: 1h
                     secretStoreRef:
@@ -220,9 +220,9 @@ spec:
                       - secretKey: {{ $secret }}
                         remoteRef:
                           key: {{ printf "%s/%s/%s" $name $env $secret }}
-            {{- end }}
+            {{ end }}
 
-            {{- if eq $p.exposure.type "public" }}
+            {{ if eq $p.exposure.type "public" }}
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -240,7 +240,7 @@ spec:
                     name: {{ $name }}
                     namespace: {{ $ns }}
                     labels:
-                      {{- toYaml $labels | nindent 22 }}
+                      {{ toYaml $labels | nindent 22 }}
                   spec:
                     parentRefs:
                       - name: main-gateway
@@ -255,4 +255,4 @@ spec:
                         backendRefs:
                           - name: {{ $name }}
                             port: {{ $p.port }}
-            {{- end }}
+            {{ end }}
