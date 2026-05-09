@@ -1,8 +1,8 @@
 apiVersion: platform.homelab.io/v1alpha1
 kind: App
 metadata:
-  name: sample-service-dev
-  namespace: default
+  name: sample-service
+  namespace: team-platform-dev
 spec:
   compositionRef:
     name: app-kubernetes

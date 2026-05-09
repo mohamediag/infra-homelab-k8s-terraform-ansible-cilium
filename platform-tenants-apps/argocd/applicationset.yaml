@@ -28,6 +28,8 @@ spec:
         path: '{{path}}'
       destination:
         server: https://kubernetes.default.svc
+        # Each app manifest declares its own metadata.namespace (team-env ns).
+        # ArgoCD will CreateNamespace=true on first sync.
         namespace: argocd
       syncPolicy:
         automated:

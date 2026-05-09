@@ -31,7 +31,8 @@ spec:
             {{- $name := $serviceName | lower | replace "_" "-" | replace "." "-" | replace " " "-" -}}
             {{- $owner := $p.owner -}}
             {{- $env := $p.environment -}}
-            {{- $ns := printf "%s-%s" $name $env -}}
+            {{- $xrns := .observed.composite.resource.metadata.namespace -}}
+            {{- $ns := $xrns -}}
             {{- $labels := dict "app.platform.homelab.io/name" $serviceName "app.platform.homelab.io/owner" $owner "app.platform.homelab.io/environment" $env -}}
             {{- $host := $p.exposure.host -}}
             {{- if and (eq $p.exposure.type "public") (ne $env "prod") -}}
@@ -44,26 +45,6 @@ spec:
                 {{- $host = printf "%s-%s" $p.exposure.host $env -}}
               {{- end -}}
             {{- end -}}
-            {{- $xrns := .observed.composite.resource.metadata.namespace -}}
-            ---
-            apiVersion: kubernetes.m.crossplane.io/v1alpha1
-            kind: Object
-            metadata:
-              name: {{ printf "%s-namespace" $name }}
-              namespace: {{ $xrns }}
-              annotations:
-                gotemplating.fn.crossplane.io/composition-resource-name: namespace
-            spec:
-              providerConfigRef:
-                kind: ClusterProviderConfig
-                name: default
-              forProvider:
-                manifest:
-                  apiVersion: v1
-                  kind: Namespace
-                  metadata:
-                    name: {{ $ns }}
-                    labels: {{ toYaml $labels | nindent 22 }}
             ---
             apiVersion: kubernetes.m.crossplane.io/v1alpha1
             kind: Object
