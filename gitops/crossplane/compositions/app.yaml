@@ -21,9 +21,9 @@ spec:
         apiVersion: gotemplating.fn.crossplane.io/v1beta1
         kind: GoTemplate
         source: Inline
+        options:
+          - missingkey=error
         inline:
-          options:
-            - missingkey=error
           template: |
             {{- $p := .observed.composite.resource.spec.parameters -}}
             {{- $serviceName := $p.name -}}
