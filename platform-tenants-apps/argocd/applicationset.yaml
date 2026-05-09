@@ -4,33 +4,37 @@ metadata:
   name: tenants-apps
   namespace: argocd
 spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
   generators:
     - git:
         repoURL: https://github.com/mohamediag/infra-homelab-k8s-terraform-ansible-cilium.git
         revision: main
         directories:
-          - path: platform-tenants-apps/apps/*/dev
-          - path: platform-tenants-apps/apps/*/staging
-          - path: platform-tenants-apps/apps/*/prod
+          - path: platform-tenants-apps/apps/*/*/dev
+          - path: platform-tenants-apps/apps/*/*/staging
+          - path: platform-tenants-apps/apps/*/*/prod
   template:
     metadata:
-      name: '{{path[2]}}-{{path[3]}}'
+      # path layout: platform-tenants-apps/apps/<team>/<service>/<env>
+      # path[2]=team, path[3]=service, path[4]=env
+      name: '{{index .path.segments 3}}-{{index .path.segments 4}}'
       namespace: argocd
       labels:
         app.kubernetes.io/managed-by: applicationset
-        app.platform.homelab.io/name: '{{path[2]}}'
-        app.platform.homelab.io/environment: '{{path[3]}}'
+        app.platform.homelab.io/team: '{{index .path.segments 2}}'
+        app.platform.homelab.io/name: '{{index .path.segments 3}}'
+        app.platform.homelab.io/environment: '{{index .path.segments 4}}'
     spec:
       project: default
       source:
         repoURL: https://github.com/mohamediag/infra-homelab-k8s-terraform-ansible-cilium.git
         targetRevision: main
-        path: '{{path}}'
+        path: '{{.path.path}}'
       destination:
         server: https://kubernetes.default.svc
-        # Each app manifest declares its own metadata.namespace (team-env ns).
-        # ArgoCD will CreateNamespace=true on first sync.
-        namespace: argocd
+        # team-env namespace: <team>-<env>
+        namespace: '{{index .path.segments 2}}-{{index .path.segments 4}}'
       syncPolicy:
         automated:
           prune: true

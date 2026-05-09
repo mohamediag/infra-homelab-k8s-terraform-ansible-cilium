@@ -4,8 +4,8 @@ Tenant-facing GitOps folder for application **App XRs** (Crossplane v2 namespace
 
 ## Layout
 
-- `argocd/applicationset.yaml`: Generates one ArgoCD Application per service/environment folder under `apps/`.
-- `apps/<service>/{dev,staging,prod}/app.yaml`: Per-environment `App` XR consumed by Crossplane.
+- `argocd/applicationset.yaml`: Generates one ArgoCD Application per service/environment folder under `apps/<team>/<service>/<env>/`.
+- `apps/<team>/<service>/{dev,staging,prod}/app.yaml`: Per-environment `App` XR consumed by Crossplane.
 
 ## Ownership model
 
@@ -16,7 +16,7 @@ Tenant-facing GitOps folder for application **App XRs** (Crossplane v2 namespace
 
 Each `App` XR declares `metadata.namespace: <team>-<env>` (e.g. `team-platform-dev`). The XR **and** all its composed Kubernetes resources (Deployment, Service, ConfigMap, ExternalSecret, HTTPRoute, plus the wrapping provider-kubernetes `Object` MRs) all land in that single team-env namespace.
 
-Team-env namespaces are pre-provisioned declaratively in `gitops/cluster-infra/tenant-namespaces.yaml`. Adding a new team or environment means adding a Namespace to that file.
+The ApplicationSet derives the destination namespace from the folder path (`<team>-<env>`) and ArgoCD's `CreateNamespace=true` syncOption mints it on first sync. No separate Namespace YAML is required.
 
 ## Authoring an App XR (manual)
 
