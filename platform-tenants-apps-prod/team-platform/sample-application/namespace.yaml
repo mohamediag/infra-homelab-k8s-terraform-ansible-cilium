@@ -5,7 +5,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "-10"
   labels:
     app.platform.homelab.io/application: sample-application
-    app.platform.homelab.io/environment: staging
+    app.platform.homelab.io/environment: prod
     app.platform.homelab.io/team: team-platform
-  name: sample-application-staging
+  name: sample-application-prod
 
