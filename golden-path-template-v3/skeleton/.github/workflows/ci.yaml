@@ -1,0 +1,197 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  GITOPS_REPO: mohamediag/infra-homelab-k8s-terraform-ansible-cilium
+  GITOPS_BRANCH: main
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout app repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Run vet
+        run: go vet ./...
+
+  build-image:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs:
+      - lint-test
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      image_repo: ${{ steps.image.outputs.image_repo }}
+      short_sha: ${{ steps.image.outputs.short_sha }}
+    steps:
+      - name: Checkout app repo
+        uses: actions/checkout@v4
+
+      - name: Set image metadata
+        id: image
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          repo="${GITHUB_REPOSITORY,,}"
+          echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
+          echo "image_repo=ghcr.io/${repo}" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${repo}:${short_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.image.outputs.image }}
+            ${{ steps.image.outputs.image_repo }}:main
+
+  update-gitops:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs:
+      - build-image
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+      IMAGE: ${{ needs.build-image.outputs.image }}
+      SHORT_SHA: ${{ needs.build-image.outputs.short_sha }}
+      APP_REPO_PATH: ${{ github.workspace }}/app-repo
+      GITOPS_REPO_PATH: ${{ github.workspace }}/gitops-repo
+    steps:
+      - name: Checkout app repo
+        uses: actions/checkout@v4
+        with:
+          path: app-repo
+          fetch-depth: 0
+
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          ref: ${{ env.GITOPS_BRANCH }}
+          token: ${{ secrets.GITOPS_TOKEN }}
+          path: gitops-repo
+          fetch-depth: 0
+
+      - name: Setup Go for generator
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: gitops-repo/tools/generator/go.mod
+          cache-dependency-path: gitops-repo/tools/generator/go.sum
+          cache: true
+
+      - name: Detect service shape change
+        id: changes
+        shell: bash
+        working-directory: app-repo
+        run: |
+          before="${{ github.event.before }}"
+          if [[ -z "${before}" || "${before}" =~ ^0+$ ]] || ! git rev-parse --verify "${before}^{commit}" >/dev/null 2>&1; then
+            echo "shape_changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git diff --name-only "${before}" "${GITHUB_SHA}" | grep -qx 'service.yaml'; then
+            echo "shape_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "shape_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Read ci.autoCommitDev
+        id: service
+        shell: bash
+        working-directory: gitops-repo/tools/generator
+        run: |
+          auto_commit_dev=$(go run ./cmd/generator --service "$APP_REPO_PATH/service.yaml" --gitops-repo "$GITOPS_REPO_PATH" --image-tag "$IMAGE" --env dev --print-auto-commit-dev)
+          echo "auto_commit_dev=${auto_commit_dev}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate GitOps files
+        shell: bash
+        working-directory: gitops-repo/tools/generator
+        run: |
+          if [[ "${{ steps.changes.outputs.shape_changed }}" == "true" ]]; then
+            go run ./cmd/generator \
+              --service "$APP_REPO_PATH/service.yaml" \
+              --gitops-repo "$GITOPS_REPO_PATH" \
+              --image-tag "$IMAGE" \
+              --all-envs
+          else
+            go run ./cmd/generator \
+              --service "$APP_REPO_PATH/service.yaml" \
+              --gitops-repo "$GITOPS_REPO_PATH" \
+              --image-tag "$IMAGE" \
+              --env dev
+          fi
+
+      - name: Commit or open PR
+        shell: bash
+        working-directory: gitops-repo
+        run: |
+          if git diff --quiet; then
+            echo "No GitOps changes generated."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          service_name=$(go -C tools/generator run ./cmd/generator --service "$APP_REPO_PATH/service.yaml" --gitops-repo "$GITOPS_REPO_PATH" --image-tag "$IMAGE" --env dev --print-service-name)
+
+          if [[ "${{ steps.changes.outputs.shape_changed }}" == "false" && "${{ steps.service.outputs.auto_commit_dev }}" == "true" ]]; then
+            git add platform-tenants-apps-dev
+            git commit -m "chore(${service_name}): update dev image"
+            git push origin "$GITOPS_BRANCH"
+            exit 0
+          fi
+
+          branch="generator/${service_name}-${SHORT_SHA}"
+          git checkout -b "$branch"
+          git add -A -- platform-tenants-apps-*
+          git commit -m "chore(${service_name}): update generated app intent"
+          git push -u origin "$branch"
+
+          if gh pr view "$branch" --repo "$GITOPS_REPO" >/dev/null 2>&1; then
+            echo "PR already exists for $branch"
+          else
+            gh pr create \
+              --repo "$GITOPS_REPO" \
+              --base "$GITOPS_BRANCH" \
+              --head "$branch" \
+              --title "chore(${service_name}): update generated app intent" \
+              --body "Generated from ${GITHUB_REPOSITORY}@${GITHUB_SHA}. Image: ${IMAGE}."
+          fi

@@ -2,6 +2,8 @@ name: sample-service
 application: sample-application
 team: team-platform
 description: Sample service
+ci:
+  autoCommitDev: true
 port: 80
 healthCheck:
   liveness: /

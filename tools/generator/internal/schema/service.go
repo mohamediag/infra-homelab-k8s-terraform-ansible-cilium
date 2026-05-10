@@ -19,6 +19,7 @@ type Service struct {
 	Application  string                 `json:"application" yaml:"application"`
 	Team         string                 `json:"team" yaml:"team"`
 	Description  string                 `json:"description" yaml:"description"`
+	CI           *CI                    `json:"ci" yaml:"ci"`
 	Image        string                 `json:"image" yaml:"image"`
 	Port         int                    `json:"port" yaml:"port"`
 	HealthCheck  HealthCheck            `json:"healthCheck" yaml:"healthCheck"`
@@ -27,6 +28,10 @@ type Service struct {
 	Config       Config                 `json:"config" yaml:"config"`
 	Secrets      []string               `json:"secrets" yaml:"secrets"`
 	Environments map[string]Environment `json:"environments" yaml:"environments"`
+}
+
+type CI struct {
+	AutoCommitDev bool `json:"autoCommitDev" yaml:"autoCommitDev"`
 }
 
 type HealthCheck struct {
@@ -190,6 +195,13 @@ func (s *Service) ConfigFor(env string) map[string]string {
 		out[k] = v
 	}
 	return out
+}
+
+func (s *Service) AutoCommitDev() bool {
+	if s.CI == nil {
+		return true
+	}
+	return s.CI.AutoCommitDev
 }
 
 func IsAllowedEnv(env string) bool {

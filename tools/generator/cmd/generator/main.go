@@ -28,6 +28,8 @@ func run(args []string) error {
 	env := fs.String("env", "", "single environment to emit: dev, staging, or prod")
 	allEnvs := fs.Bool("all-envs", false, "emit all environments defined in service.yaml")
 	dryRun := fs.Bool("dry-run", false, "print generated files instead of writing them")
+	printAutoCommitDev := fs.Bool("print-auto-commit-dev", false, "print ci.autoCommitDev and exit")
+	printServiceName := fs.Bool("print-service-name", false, "print service name and exit")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -41,6 +43,14 @@ func run(args []string) error {
 	}
 	if err := svc.Validate(*imageTag); err != nil {
 		return err
+	}
+	if *printAutoCommitDev {
+		fmt.Println(svc.AutoCommitDev())
+		return nil
+	}
+	if *printServiceName {
+		fmt.Println(svc.Name)
+		return nil
 	}
 
 	envs, err := schema.SelectEnvs(svc.Environments, *env, *allEnvs)

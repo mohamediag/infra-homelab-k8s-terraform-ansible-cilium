@@ -1,6 +1,9 @@
 package schema
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+)
 
 func TestSelectEnvs(t *testing.T) {
 	envs := map[string]Environment{
@@ -43,5 +46,29 @@ func TestParseResourcePair(t *testing.T) {
 
 	if _, err := ParseResourcePair("25m"); err == nil {
 		t.Fatal("expected invalid format error")
+	}
+}
+
+func TestAutoCommitDevDefault(t *testing.T) {
+	svc := Service{}
+	if !svc.AutoCommitDev() {
+		t.Fatal("expected autoCommitDev to default to true")
+	}
+}
+
+func TestAutoCommitDevExplicitFalse(t *testing.T) {
+	svc := Service{CI: &CI{AutoCommitDev: false}}
+	if svc.AutoCommitDev() {
+		t.Fatal("expected explicit false to be honored")
+	}
+}
+
+func TestLoadAcceptsCI(t *testing.T) {
+	svc, err := Load(filepath.Join("..", "..", "testdata", "basic", "service.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !svc.AutoCommitDev() {
+		t.Fatal("expected ci.autoCommitDev=true from fixture")
 	}
 }
