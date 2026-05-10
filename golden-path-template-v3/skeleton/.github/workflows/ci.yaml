@@ -144,19 +144,11 @@ jobs:
         shell: bash
         working-directory: gitops-repo/tools/generator
         run: |
-          if [[ "${{ steps.changes.outputs.shape_changed }}" == "true" ]]; then
-            go run ./cmd/generator \
-              --service "$APP_REPO_PATH/service.yaml" \
-              --gitops-repo "$GITOPS_REPO_PATH" \
-              --image-tag "$IMAGE" \
-              --all-envs
-          else
-            go run ./cmd/generator \
-              --service "$APP_REPO_PATH/service.yaml" \
-              --gitops-repo "$GITOPS_REPO_PATH" \
-              --image-tag "$IMAGE" \
-              --env dev
-          fi
+          go run ./cmd/generator \
+            --service "$APP_REPO_PATH/service.yaml" \
+            --gitops-repo "$GITOPS_REPO_PATH" \
+            --image-tag "$IMAGE" \
+            --env dev
 
       - name: Commit or open PR
         shell: bash
@@ -181,8 +173,8 @@ jobs:
 
           branch="generator/${service_name}-${SHORT_SHA}"
           git checkout -b "$branch"
-          git add -A -- platform-tenants-apps-*
-          git commit -m "chore(${service_name}): update generated app intent"
+          git add -A -- platform-tenants-apps-dev
+          git commit -m "chore(${service_name}): update dev generated app intent"
           git push -u origin "$branch"
 
           if gh pr view "$branch" --repo "$GITOPS_REPO" >/dev/null 2>&1; then
@@ -192,6 +184,6 @@ jobs:
               --repo "$GITOPS_REPO" \
               --base "$GITOPS_BRANCH" \
               --head "$branch" \
-              --title "chore(${service_name}): update generated app intent" \
-              --body "Generated from ${GITHUB_REPOSITORY}@${GITHUB_SHA}. Image: ${IMAGE}."
+              --title "chore(${service_name}): update dev generated app intent" \
+              --body "Generated dev intent from ${GITHUB_REPOSITORY}@${GITHUB_SHA}. Image: ${IMAGE}. Promote to staging/prod with the promote workflow."
           fi
