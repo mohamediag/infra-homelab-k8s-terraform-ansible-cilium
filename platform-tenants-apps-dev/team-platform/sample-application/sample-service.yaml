@@ -25,7 +25,8 @@ spec:
         memory: 64Mi
     config:
       LOG_LEVEL: debug
-    secrets: []
+    secrets:
+      - DUMMY_SECRET
     exposure:
       type: none
       host: sample-service.example.com
