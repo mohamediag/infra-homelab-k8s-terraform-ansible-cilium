@@ -19,7 +19,7 @@ spec:
     healthCheck:
       liveness: /healthz
       readiness: /readyz
-    image: ghcr.io/mohamediag/sample-service:e42bf0d
+    image: ghcr.io/mohamediag/sample-service:f9cc30c
     metrics:
       enabled: true
       path: /metrics
