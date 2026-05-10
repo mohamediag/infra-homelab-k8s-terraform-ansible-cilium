@@ -33,8 +33,8 @@ spec:
         path: '{{.path.path}}'
       destination:
         server: https://kubernetes.default.svc
-        # application-env namespace: <team>-<application>-<env>
-        namespace: '{{index .path.segments 2}}-{{index .path.segments 3}}-{{trimPrefix "platform-tenants-apps-" (index .path.segments 0)}}'
+        # application-env namespace: <application>-<env>
+        namespace: '{{index .path.segments 3}}-{{trimPrefix "platform-tenants-apps-" (index .path.segments 0)}}'
       syncPolicy:
         automated:
           prune: true

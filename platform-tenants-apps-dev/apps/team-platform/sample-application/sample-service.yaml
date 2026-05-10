@@ -2,7 +2,7 @@ apiVersion: platform.homelab.io/v1alpha1
 kind: App
 metadata:
   name: sample-service
-  namespace: team-platform-sample-application-dev
+  namespace: sample-application-dev
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:

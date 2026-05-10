@@ -28,14 +28,16 @@ platform-tenants-apps-dev/
 
 ## Namespace model
 
-Namespace convention: `<team>-<application>-<env>`.
+Namespace convention: `<application>-<env>`.
 
-Example: `team-platform-sample-application-dev`.
+Example: `sample-application-dev`.
+
+Team ownership is stored as namespace/app labels, not encoded in the runtime namespace name.
 
 An application can contain multiple services. All service XRs and their composed workloads live in that one application/environment namespace:
 
 ```text
-team-platform-sample-application-dev
+sample-application-dev
 ├── App/sample-service
 ├── App/another-service
 ├── Object MRs
@@ -58,7 +60,7 @@ The namespace is an explicit manifest in the same folder as the service XRs. Arg
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: team-platform-sample-application-dev
+  name: sample-application-dev
   annotations:
     argocd.argoproj.io/sync-wave: "-10"
   labels:
@@ -74,7 +76,7 @@ apiVersion: platform.homelab.io/v1alpha1
 kind: App
 metadata:
   name: sample-service
-  namespace: team-platform-sample-application-dev
+  namespace: sample-application-dev
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
@@ -111,11 +113,11 @@ In production, the generator (`tools/generator/`, Step 5) writes these files fro
 
 ```sh
 # See the XR and all composed resources
-crossplane beta trace app/<service-name> -n <team>-<application>-<env>
+crossplane beta trace app/<service-name> -n <application>-<env>
 
 # Inspect the wrapping Object MRs
-kubectl get objects.kubernetes.m.crossplane.io -n <team>-<application>-<env>
+kubectl get objects.kubernetes.m.crossplane.io -n <application>-<env>
 
 # Inspect the actual workload
-kubectl get all -n <team>-<application>-<env>
+kubectl get all -n <application>-<env>
 ```
