@@ -1,0 +1,27 @@
+name: sample-service
+application: sample-application
+team: team-platform
+description: Sample service
+port: 80
+healthCheck:
+  liveness: /
+  readiness: /
+metrics:
+  enabled: false
+  path: /metrics
+exposure:
+  type: none
+  host: sample-service.example.com
+config:
+  default:
+    LOG_LEVEL: info
+  overrides:
+    dev:
+      LOG_LEVEL: debug
+secrets: []
+environments:
+  dev:
+    replicas: 1
+    resources:
+      cpu: 25m/100m
+      memory: 32Mi/64Mi

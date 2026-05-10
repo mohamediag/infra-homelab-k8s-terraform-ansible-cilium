@@ -1,0 +1,28 @@
+name: sample-service
+application: sample-application
+team: team-platform
+port: 80
+healthCheck:
+  liveness: /
+  readiness: /
+metrics:
+  enabled: true
+  path: /metrics
+exposure:
+  type: public
+  host: sample-service.example.com
+config:
+  default:
+    LOG_LEVEL: info
+    FEATURE_FLAG: "false"
+  overrides:
+    prod:
+      LOG_LEVEL: warn
+      FEATURE_FLAG: "true"
+secrets: []
+environments:
+  prod:
+    replicas: 3
+    resources:
+      cpu: 100m/500m
+      memory: 128Mi/256Mi
