@@ -57,9 +57,17 @@ func TestAutoCommitDevDefault(t *testing.T) {
 }
 
 func TestAutoCommitDevExplicitFalse(t *testing.T) {
-	svc := Service{CI: &CI{AutoCommitDev: false}}
+	autoCommitDev := false
+	svc := Service{CI: &CI{AutoCommitDev: &autoCommitDev}}
 	if svc.AutoCommitDev() {
 		t.Fatal("expected explicit false to be honored")
+	}
+}
+
+func TestAutoCommitDevDefaultsWithCIBlock(t *testing.T) {
+	svc := Service{CI: &CI{Promotion: &Promotion{Staging: "commit", Prod: "pr"}}}
+	if !svc.AutoCommitDev() {
+		t.Fatal("expected omitted ci.autoCommitDev to default to true")
 	}
 }
 
@@ -70,5 +78,52 @@ func TestLoadAcceptsCI(t *testing.T) {
 	}
 	if !svc.AutoCommitDev() {
 		t.Fatal("expected ci.autoCommitDev=true from fixture")
+	}
+}
+
+func TestPromotionModeDefaults(t *testing.T) {
+	svc := Service{}
+
+	mode, err := svc.PromotionMode("staging")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mode != "commit" {
+		t.Fatalf("expected staging default commit, got %q", mode)
+	}
+
+	mode, err = svc.PromotionMode("prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mode != "pr" {
+		t.Fatalf("expected prod default pr, got %q", mode)
+	}
+}
+
+func TestPromotionModeOverrides(t *testing.T) {
+	svc := Service{CI: &CI{Promotion: &Promotion{Staging: "pr", Prod: "commit"}}}
+
+	mode, err := svc.PromotionMode("staging")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mode != "pr" {
+		t.Fatalf("expected staging override pr, got %q", mode)
+	}
+
+	mode, err = svc.PromotionMode("prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mode != "commit" {
+		t.Fatalf("expected prod override commit, got %q", mode)
+	}
+}
+
+func TestPromotionModeRejectsDev(t *testing.T) {
+	svc := Service{}
+	if _, err := svc.PromotionMode("dev"); err == nil {
+		t.Fatal("expected error")
 	}
 }

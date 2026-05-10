@@ -10,7 +10,19 @@ This is the v1 auth model for speed. Replace it later with a GitHub App installa
 
 ## Promotion
 
-Normal pushes update dev only. To promote a validated image to staging or prod, run the `promote` workflow manually with:
+Normal pushes update dev first. If dev was directly updated, the same pipeline continues into approval-gated promotion jobs:
 
-- `environment`: `staging` or `prod`
-- `image`: full image ref, for example `ghcr.io/mohamediag/sample-service:e42bf0d`
+- `promote-to-staging`: uses the GitHub `staging` environment and defaults to a direct GitOps commit.
+- `promote-to-prod`: uses the GitHub `prod` environment and defaults to opening a GitOps PR.
+
+Configure promotion behavior in `service.yaml`:
+
+```yaml
+ci:
+  autoCommitDev: true
+  promotion:
+    staging: commit
+    prod: pr
+```
+
+Allowed promotion values are `commit` and `pr`.

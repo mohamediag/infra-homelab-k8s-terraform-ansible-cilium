@@ -4,6 +4,9 @@ team: team-platform
 description: Sample service
 ci:
   autoCommitDev: true
+  promotion:
+    staging: commit
+    prod: pr
 port: 80
 healthCheck:
   liveness: /

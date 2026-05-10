@@ -31,7 +31,13 @@ type Service struct {
 }
 
 type CI struct {
-	AutoCommitDev bool `json:"autoCommitDev" yaml:"autoCommitDev"`
+	AutoCommitDev *bool      `json:"autoCommitDev" yaml:"autoCommitDev"`
+	Promotion     *Promotion `json:"promotion" yaml:"promotion"`
+}
+
+type Promotion struct {
+	Staging string `json:"staging" yaml:"staging"`
+	Prod    string `json:"prod" yaml:"prod"`
 }
 
 type HealthCheck struct {
@@ -106,6 +112,14 @@ func (s *Service) Validate(imageTag string) error {
 
 	if s.Port < 1 || s.Port > 65535 {
 		errs = append(errs, "port must be between 1 and 65535")
+	}
+	if s.CI != nil && s.CI.Promotion != nil {
+		if err := validatePromotionMode("ci.promotion.staging", s.CI.Promotion.Staging); err != nil {
+			errs = append(errs, err.Error())
+		}
+		if err := validatePromotionMode("ci.promotion.prod", s.CI.Promotion.Prod); err != nil {
+			errs = append(errs, err.Error())
+		}
 	}
 
 	if s.Image == "" && imageTag == "" {
@@ -198,10 +212,38 @@ func (s *Service) ConfigFor(env string) map[string]string {
 }
 
 func (s *Service) AutoCommitDev() bool {
-	if s.CI == nil {
+	if s.CI == nil || s.CI.AutoCommitDev == nil {
 		return true
 	}
-	return s.CI.AutoCommitDev
+	return *s.CI.AutoCommitDev
+}
+
+func (s *Service) PromotionMode(env string) (string, error) {
+	switch env {
+	case "staging":
+		return s.promotionValue(env, "commit"), nil
+	case "prod":
+		return s.promotionValue(env, "pr"), nil
+	default:
+		return "", fmt.Errorf("promotion mode is only defined for staging or prod")
+	}
+}
+
+func (s *Service) promotionValue(env, fallback string) string {
+	if s.CI == nil || s.CI.Promotion == nil {
+		return fallback
+	}
+	switch env {
+	case "staging":
+		if s.CI.Promotion.Staging != "" {
+			return s.CI.Promotion.Staging
+		}
+	case "prod":
+		if s.CI.Promotion.Prod != "" {
+			return s.CI.Promotion.Prod
+		}
+	}
+	return fallback
 }
 
 func IsAllowedEnv(env string) bool {
@@ -248,4 +290,13 @@ func ParseResourcePair(value string) (ResourcePair, error) {
 		return ResourcePair{}, fmt.Errorf("must use request/limit format")
 	}
 	return ResourcePair{Request: strings.TrimSpace(parts[0]), Limit: strings.TrimSpace(parts[1])}, nil
+}
+
+func validatePromotionMode(field, value string) error {
+	switch value {
+	case "", "commit", "pr":
+		return nil
+	default:
+		return fmt.Errorf("%s must be one of: commit, pr", field)
+	}
 }
