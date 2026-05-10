@@ -209,6 +209,7 @@ spec:
                       - secretKey: {{ $secret }}
                         remoteRef:
                           key: {{ printf "%s/%s/%s" $name $env $secret }}
+                          property: {{ $secret }}
             {{- end }}
             {{- if eq $p.exposure.type "public" }}
             ---
