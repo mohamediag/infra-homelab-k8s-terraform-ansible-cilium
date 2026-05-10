@@ -5,19 +5,18 @@ Tenant-facing GitOps control folder. It owns the ApplicationSet that generates o
 ## Layout
 
 - `platform-tenants-apps/argocd/applicationset.yaml`: Generates one ArgoCD Application per `<env>/<team>/<application>` folder.
-- `platform-tenants-apps-<env>/apps/<team>/<application>/namespace.yaml`: Explicit namespace manifest for that application/environment.
-- `platform-tenants-apps-<env>/apps/<team>/<application>/<service>.yaml`: One Crossplane v2 namespaced `App` XR per service.
+- `platform-tenants-apps-<env>/<team>/<application>/namespace.yaml`: Explicit namespace manifest for that application/environment.
+- `platform-tenants-apps-<env>/<team>/<application>/<service>.yaml`: One Crossplane v2 namespaced `App` XR per service.
 
 Example:
 
 ```text
 platform-tenants-apps-dev/
-└── apps/
-    └── team-platform/
-        └── sample-application/
-            ├── namespace.yaml
-            ├── sample-service.yaml
-            └── another-service.yaml
+└── team-platform/
+    └── sample-application/
+        ├── namespace.yaml
+        ├── sample-service.yaml
+        └── another-service.yaml
 ```
 
 ## Ownership model
