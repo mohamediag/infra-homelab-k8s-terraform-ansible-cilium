@@ -1,7 +1,7 @@
 # ==============================================================================
 # Platform Tenants Apps Application
 # ==============================================================================
-# Deploys the tenant-facing ApplicationSet from platform-tenants-apps/argocd.
+# Deploys the tenant-facing ApplicationSet from gitops/tenant-applications.
 # This syncs after crossplane-platform so platform APIs are available first.
 # ==============================================================================
 
@@ -19,7 +19,7 @@ spec:
   source:
     repoURL: {{ .Values.spec.repoURL }}
     targetRevision: {{ .Values.spec.targetRevision }}
-    path: platform-tenants-apps/argocd
+    path: gitops/tenant-applications
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

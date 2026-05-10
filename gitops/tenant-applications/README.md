@@ -1,10 +1,10 @@
-# platform-tenants-apps
+# tenant-applications
 
-Tenant-facing GitOps control folder. It owns the ApplicationSet that generates one ArgoCD Application per application/environment folder.
+Platform-owned ArgoCD control folder. It owns the ApplicationSet that generates one ArgoCD Application per tenant application/environment folder.
 
 ## Layout
 
-- `platform-tenants-apps/argocd/applicationset.yaml`: Generates one ArgoCD Application per `<env>/<team>/<application>` folder.
+- `gitops/tenant-applications/applicationset.yaml`: Generates one ArgoCD Application per `<env>/<team>/<application>` folder.
 - `platform-tenants-apps-<env>/<team>/<application>/namespace.yaml`: Explicit namespace manifest for that application/environment.
 - `platform-tenants-apps-<env>/<team>/<application>/<service>.yaml`: One Crossplane v2 namespaced `App` XR per service.
 
@@ -22,7 +22,7 @@ platform-tenants-apps-dev/
 ## Ownership model
 
 - `gitops/`: platform and infrastructure-level resources managed by platform operators.
-- `platform-tenants-apps/`: ArgoCD ApplicationSet owned by platform operators.
+- `gitops/tenant-applications/`: ArgoCD ApplicationSet owned by platform operators.
 - `platform-tenants-apps-{dev,staging,prod}/`: tenant app intent managed through app/team workflows.
 
 ## Namespace model

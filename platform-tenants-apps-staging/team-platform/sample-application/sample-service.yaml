@@ -2,7 +2,9 @@ apiVersion: platform.homelab.io/v1alpha1
 kind: App
 metadata:
   name: sample-service
-  namespace: team-platform-staging
+  namespace: sample-application-staging
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   crossplane:
     compositionRef:
@@ -10,7 +12,7 @@ spec:
   parameters:
     name: sample-service
     owner: team-platform
-    environment: dev
+    environment: staging
     image: nginx:1.27
     port: 80
     replicas: 1

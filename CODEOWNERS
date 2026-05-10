@@ -2,7 +2,6 @@
 /gitops/ @mohamediag
 
 # Tenant application XRs and app intent
-/platform-tenants-apps/ @mohamediag
 /platform-tenants-apps-dev/ @mohamediag
 /platform-tenants-apps-staging/ @mohamediag
 /platform-tenants-apps-prod/ @mohamediag

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sample-application-staging
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+  labels:
+    app.platform.homelab.io/team: team-platform
+    app.platform.homelab.io/application: sample-application
+    app.platform.homelab.io/environment: staging
