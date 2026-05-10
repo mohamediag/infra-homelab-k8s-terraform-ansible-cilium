@@ -4,7 +4,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
   name: sample-service
-  namespace: sample-application-staging
+  namespace: sample-application-prod
 spec:
   crossplane:
     compositionRef:
@@ -12,7 +12,7 @@ spec:
   parameters:
     config:
       LOG_LEVEL: info
-    environment: staging
+    environment: prod
     exposure:
       host: sample-service.example.com
       type: none
@@ -26,14 +26,14 @@ spec:
     name: sample-service
     owner: team-platform
     port: 8080
-    replicas: 1
+    replicas: 2
     resources:
       limits:
-        cpu: 200m
-        memory: 128Mi
+        cpu: 500m
+        memory: 256Mi
       requests:
-        cpu: 50m
-        memory: 64Mi
+        cpu: 100m
+        memory: 128Mi
     secrets:
     - DUMMY_SECRET
 

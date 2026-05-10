@@ -1,38 +1,39 @@
 apiVersion: platform.homelab.io/v1alpha1
 kind: App
 metadata:
-  name: sample-service
-  namespace: sample-application-dev
   annotations:
     argocd.argoproj.io/sync-wave: "0"
+  name: sample-service
+  namespace: sample-application-dev
 spec:
   crossplane:
     compositionRef:
       name: app-kubernetes
   parameters:
+    config:
+      LOG_LEVEL: debug
+    environment: dev
+    exposure:
+      host: sample-service.example.com
+      type: none
+    healthCheck:
+      liveness: /healthz
+      readiness: /readyz
+    image: ghcr.io/mohamediag/sample-service:5423e64
+    metrics:
+      enabled: true
+      path: /metrics
     name: sample-service
     owner: team-platform
-    environment: dev
-    image: nginx:1.27
-    port: 80
+    port: 8080
     replicas: 1
     resources:
-      requests:
-        cpu: 25m
-        memory: 32Mi
       limits:
         cpu: 100m
         memory: 64Mi
-    config:
-      LOG_LEVEL: debug
+      requests:
+        cpu: 25m
+        memory: 32Mi
     secrets:
-      - DUMMY_SECRET
-    exposure:
-      type: none
-      host: sample-service.example.com
-    healthCheck:
-      liveness: /
-      readiness: /
-    metrics:
-      enabled: false
-      path: /metrics
+    - DUMMY_SECRET
+
