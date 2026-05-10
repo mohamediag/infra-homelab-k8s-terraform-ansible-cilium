@@ -1,51 +1,102 @@
 # platform-tenants-apps
 
-Tenant-facing GitOps folder for application **App XRs** (Crossplane v2 namespaced composite resources).
+Tenant-facing GitOps control folder. It owns the ApplicationSet that generates one ArgoCD Application per application/environment folder.
 
 ## Layout
 
-- `argocd/applicationset.yaml`: Generates one ArgoCD Application per service/environment folder under `apps/<team>/<service>/<env>/`.
-- `apps/<team>/<service>/{dev,staging,prod}/app.yaml`: Per-environment `App` XR consumed by Crossplane.
+- `platform-tenants-apps/argocd/applicationset.yaml`: Generates one ArgoCD Application per `<env>/<team>/<application>` folder.
+- `platform-tenants-apps-<env>/apps/<team>/<application>/namespace.yaml`: Explicit namespace manifest for that application/environment.
+- `platform-tenants-apps-<env>/apps/<team>/<application>/<service>.yaml`: One Crossplane v2 namespaced `App` XR per service.
+
+Example:
+
+```text
+platform-tenants-apps-dev/
+└── apps/
+    └── team-platform/
+        └── sample-application/
+            ├── namespace.yaml
+            ├── sample-service.yaml
+            └── another-service.yaml
+```
 
 ## Ownership model
 
 - `gitops/`: platform and infrastructure-level resources managed by platform operators.
-- `platform-tenants-apps/`: tenant app intent (App XRs) managed through app/team workflows.
+- `platform-tenants-apps/`: ArgoCD ApplicationSet owned by platform operators.
+- `platform-tenants-apps-{dev,staging,prod}/`: tenant app intent managed through app/team workflows.
 
 ## Namespace model
 
-Each `App` XR declares `metadata.namespace: <team>-<env>` (e.g. `team-platform-dev`). The XR **and** all its composed Kubernetes resources (Deployment, Service, ConfigMap, ExternalSecret, HTTPRoute, plus the wrapping provider-kubernetes `Object` MRs) all land in that single team-env namespace.
+Namespace convention: `<team>-<application>-<env>`.
 
-The ApplicationSet derives the destination namespace from the folder path (`<team>-<env>`) and ArgoCD's `CreateNamespace=true` syncOption mints it on first sync. No separate Namespace YAML is required.
+Example: `team-platform-sample-application-dev`.
 
-## Authoring an App XR (manual)
+An application can contain multiple services. All service XRs and their composed workloads live in that one application/environment namespace:
+
+```text
+team-platform-sample-application-dev
+├── App/sample-service
+├── App/another-service
+├── Object MRs
+├── Deployment/sample-service
+├── Deployment/another-service
+├── Service/sample-service
+└── Service/another-service
+```
+
+The namespace is an explicit manifest in the same folder as the service XRs. ArgoCD sync waves guarantee ordering:
+
+- `namespace.yaml`: `argocd.argoproj.io/sync-wave: "-10"`
+- service `App` XRs: `argocd.argoproj.io/sync-wave: "0"`
+
+`CreateNamespace=true` is intentionally not used; the namespace is Git-owned and can carry labels, annotations, quotas, and policies later.
+
+## Authoring a Namespace
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-platform-sample-application-dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+  labels:
+    app.platform.homelab.io/team: team-platform
+    app.platform.homelab.io/application: sample-application
+    app.platform.homelab.io/environment: dev
+```
+
+## Authoring an App XR
 
 ```yaml
 apiVersion: platform.homelab.io/v1alpha1
 kind: App
 metadata:
-  name: my-service              # one XR per env; uniqueness comes from namespace
-  namespace: team-backend-dev   # team-env namespace (must exist)
+  name: sample-service
+  namespace: team-platform-sample-application-dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   crossplane:
     compositionRef:
       name: app-kubernetes
   parameters:
-    name: my-service
-    owner: team-backend
+    name: sample-service
+    owner: team-platform
     environment: dev
-    image: ghcr.io/example/my-service:abc123
+    image: ghcr.io/example/sample-service:abc123
     port: 8080
     replicas: 1
     resources:
       requests: { cpu: 25m, memory: 32Mi }
-      limits:   { cpu: 100m, memory: 64Mi }
+      limits: { cpu: 100m, memory: 64Mi }
     config:
       LOG_LEVEL: debug
-    secrets: []                 # names → ExternalSecret @ <name>/<env>/<SECRET>
+    secrets: []
     exposure:
-      type: none                # public | private | none
-      host: my-service.example.com
+      type: none
+      host: sample-service.example.com
     healthCheck:
       liveness: /healthz
       readiness: /readyz
@@ -54,17 +105,17 @@ spec:
       path: /metrics
 ```
 
-In production, the generator (`tools/generator/`, Step 5) writes these files from a developer-authored `service.yaml` in the app repo.
+In production, the generator (`tools/generator/`, Step 5) writes these files from developer-authored service/application metadata in app repos.
 
 ## Debugging
 
 ```sh
 # See the XR and all composed resources
-crossplane beta trace app/<name> -n <team-env-ns>
+crossplane beta trace app/<service-name> -n <team>-<application>-<env>
 
 # Inspect the wrapping Object MRs
-kubectl get objects.kubernetes.m.crossplane.io -n <team-env-ns>
+kubectl get objects.kubernetes.m.crossplane.io -n <team>-<application>-<env>
 
 # Inspect the actual workload
-kubectl get all -n <team-env-ns>
+kubectl get all -n <team>-<application>-<env>
 ```

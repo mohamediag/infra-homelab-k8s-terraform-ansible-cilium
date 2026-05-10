@@ -11,20 +11,20 @@ spec:
         repoURL: https://github.com/mohamediag/infra-homelab-k8s-terraform-ansible-cilium.git
         revision: main
         directories:
-          - path: platform-tenants-apps/apps/*/*/dev
-          - path: platform-tenants-apps/apps/*/*/staging
-          - path: platform-tenants-apps/apps/*/*/prod
+          - path: platform-tenants-apps-dev/apps/*/*
+          - path: platform-tenants-apps-staging/apps/*/*
+          - path: platform-tenants-apps-prod/apps/*/*
   template:
     metadata:
-      # path layout: platform-tenants-apps/apps/<team>/<service>/<env>
-      # path[2]=team, path[3]=service, path[4]=env
-      name: '{{index .path.segments 3}}-{{index .path.segments 4}}'
+      # path layout: platform-tenants-apps-<env>/apps/<team>/<application>
+      # path[0]=platform-tenants-apps-<env>, path[2]=team, path[3]=application
+      name: '{{index .path.segments 2}}-{{index .path.segments 3}}-{{trimPrefix "platform-tenants-apps-" (index .path.segments 0)}}'
       namespace: argocd
       labels:
         app.kubernetes.io/managed-by: applicationset
         app.platform.homelab.io/team: '{{index .path.segments 2}}'
-        app.platform.homelab.io/name: '{{index .path.segments 3}}'
-        app.platform.homelab.io/environment: '{{index .path.segments 4}}'
+        app.platform.homelab.io/application: '{{index .path.segments 3}}'
+        app.platform.homelab.io/environment: '{{trimPrefix "platform-tenants-apps-" (index .path.segments 0)}}'
     spec:
       project: default
       source:
@@ -33,12 +33,11 @@ spec:
         path: '{{.path.path}}'
       destination:
         server: https://kubernetes.default.svc
-        # team-env namespace: <team>-<env>
-        namespace: '{{index .path.segments 2}}-{{index .path.segments 4}}'
+        # application-env namespace: <team>-<application>-<env>
+        namespace: '{{index .path.segments 2}}-{{index .path.segments 3}}-{{trimPrefix "platform-tenants-apps-" (index .path.segments 0)}}'
       syncPolicy:
         automated:
           prune: true
           selfHeal: true
         syncOptions:
-          - CreateNamespace=true
           - SkipDryRunOnMissingResource=true

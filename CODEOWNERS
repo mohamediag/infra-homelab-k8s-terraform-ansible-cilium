@@ -1,5 +1,8 @@
 # Platform-level infrastructure and APIs
 /gitops/ @mohamediag
 
-# Tenant application claims and app intent
+# Tenant application XRs and app intent
 /platform-tenants-apps/ @mohamediag
+/platform-tenants-apps-dev/ @mohamediag
+/platform-tenants-apps-staging/ @mohamediag
+/platform-tenants-apps-prod/ @mohamediag
